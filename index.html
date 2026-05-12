@@ -85,6 +85,7 @@
         .btn-logout-sidebar { display: flex; align-items: center; gap: 10px; background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.3); color: #fca5a5; padding: 10px 14px; border-radius: var(--radius-sm); cursor: pointer; font-size: var(--font-sm); width: 100%; text-align: left; font-family: 'Inter', sans-serif; font-weight: 600; transition: all var(--transition); }
         .btn-logout-sidebar:hover { background: rgba(239,68,68,0.25); color: #fff; border-color: rgba(239,68,68,0.6); } .btn-logout-sidebar svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2; }
         .theme-toggle { background: transparent; border: 1px solid rgba(255,255,255,0.2); color: var(--sidebar-text-muted); padding: 8px 12px; border-radius: var(--radius-sm); cursor: pointer; font-size: var(--font-xs); width: 100%; text-align: center; font-family: 'Inter', sans-serif; }
+        
         .main-content { margin-left: 240px; flex: 1; padding: 28px 32px 40px; display: flex; flex-direction: column; gap: 20px; }
         .dashboard-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; } .dashboard-header h1 { font-size: var(--font-xl); font-weight: 700; } .dashboard-header .header-controls { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
         .btn-voltar { display: inline-flex; align-items: center; gap: 8px; background: var(--card-bg); border: 1.5px solid var(--border-light); color: var(--text-primary); padding: 10px 16px; border-radius: var(--radius-sm); cursor: pointer; font-weight: 600; font-size: var(--font-sm); font-family: 'Inter', sans-serif; transition: all var(--transition); } .btn-voltar:hover { background: #f1f5f9; border-color: #cbd5e1; } body.dark .btn-voltar:hover { background: #1e293b; border-color: #475569; }
@@ -168,7 +169,6 @@
 
         .modal-btns { display: flex; gap: 12px; margin-top: 20px; }
         
-        /* NOVOS ESTILOS PARA OS ITENS DO ORÇAMENTO E AUTOCOMPLETE */
         .autocomplete-wrapper { position: relative; width: 100%; }
         .autocomplete-dropdown { position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: var(--card-bg); border: 1px solid var(--border-light); border-radius: 8px; box-shadow: var(--shadow-md); z-index: 400; max-height: 220px; overflow-y: auto; display: none; flex-direction: column; }
         .autocomplete-item { padding: 10px 14px; font-size: var(--font-sm); cursor: pointer; border-bottom: 1px solid var(--border-light); transition: background 0.15s; display: flex; justify-content: space-between; align-items: center; }
@@ -433,7 +433,7 @@
                 const hora = new Date().getHours(); let saudacao = hora < 12 ? 'Bom dia' : hora < 18 ? 'Boa tarde' : 'Boa noite';
                 document.getElementById('sidebarGreeting').textContent = saudacao + ', ' + nomeUsuario.split(' ')[0]; document.getElementById('sidebarNome').textContent = nomeUsuario; document.getElementById('sidebarAvatar').textContent = nomeUsuario.charAt(0).toUpperCase(); document.getElementById('sidebarPerfil').textContent = perfilUsuario;
                 
-                await carregarProdutos(); // Carrega produtos logo no login
+                await carregarProdutos(); // Carrega e valida produtos logo no login
                 await carregarDados(); 
                 await carregarHistoricoFaturamento();
                 if (isAdministrador) navigateTo('admin_inicio'); else navigateTo('inicio');
@@ -476,20 +476,43 @@
         }
 
         async function carregarProdutos() {
+            console.log("-------------------------------------------------");
+            console.log("🔍 INICIANDO VALIDAÇÃO DA TABELA 'produtos'...");
             try {
-                // Tenta puxar da tabela 'produtos'
-                const { data, error } = await db.from('produtos').select('*');
+                // 1) Teste de Conexão e RLS
+                const { data: testData, error: testError } = await db.from('produtos').select('produto').limit(1);
+
+                if (testError) {
+                    console.error("❌ ERRO DE VALIDAÇÃO NA TABELA 'produtos':");
+                    console.error("CÓDIGO SUPABASE:", testError.code);
+                    console.error("MENSAGEM:", testError.message);
+                    
+                    if (testError.code === '42P01') {
+                        console.error("➡️ DIAGNÓSTICO: A tabela 'produtos' NÃO EXISTE no seu banco de dados.");
+                    } else {
+                        console.error("➡️ DIAGNÓSTICO: A tabela existe, mas o front-end NÃO TEM PERMISSÃO de leitura. Verifique as políticas de RLS (Row Level Security).");
+                    }
+                    console.log("-------------------------------------------------");
+                    return; // Aborta para evitar quebrar a tela
+                }
+
+                console.log("✅ SUCESSO: A tabela 'produtos' está acessível e as permissões (RLS) estão liberadas para leitura!");
+                
+                // 2) Carregamento Real (Buscando todos os produtos especificamente na coluna 'produto')
+                const { data, error } = await db.from('produtos').select('produto');
+                
                 if (!error && data) {
-                    todosProdutos = data.sort((a, b) => {
-                        // Usa a coluna Produto com 'P' maiúsculo como na imagem
-                        const nomeA = a.Produto || '';
-                        const nomeB = b.Produto || '';
-                        return nomeA.localeCompare(nomeB);
-                    });
+                    todosProdutos = data
+                        .map(p => ({ nome: p.produto || '' })) // Pega especificamente a coluna solicitada
+                        .filter(p => p.nome.trim() !== '')
+                        .sort((a, b) => a.nome.localeCompare(b.nome));
+
+                    console.log(`📦 ${todosProdutos.length} produtos carregados para o dropdown de autocomplete.`);
                 }
             } catch (e) {
-                console.warn("Aviso: Tabela 'produtos' não encontrada ou sem acesso. Autocomplete manual será usado.", e);
+                console.error("❌ FALHA INESPERADA ao tentar acessar 'produtos':", e);
             }
+            console.log("-------------------------------------------------");
         }
 
         async function carregarHistoricoFaturamento() {
@@ -616,7 +639,7 @@
             } catch(e) { 
                 console.error(e); 
                 btn.classList.remove('saving'); btn.disabled = false; 
-                alert("Erro ao excluir: " + e.message);
+                // Evitamos alert, ideal seria um span de erro
             }
         }
 
@@ -921,11 +944,7 @@
 
             if (!term) { renderDropdownProdutos(dropdown, todosProdutos, input); return; }
 
-            const filtrados = todosProdutos.filter(p => {
-                // Usa a coluna Produto com 'P' maiúsculo
-                const nome = p.Produto || '';
-                return nome.toLowerCase().includes(term);
-            });
+            const filtrados = todosProdutos.filter(p => p.nome.toLowerCase().includes(term));
             renderDropdownProdutos(dropdown, filtrados, input);
         }
 
@@ -941,25 +960,19 @@
         function renderDropdownProdutos(dropdown, lista, input) {
             dropdown.innerHTML = '';
             if (lista.length === 0) {
-                dropdown.innerHTML = '<div style="padding:12px 14px; font-size:var(--font-xs); color:var(--text-muted); text-align:center;">Nenhum produto salvo encontrado.<br>Você pode continuar digitando.</div>';
+                dropdown.innerHTML = '<div style="padding:12px 14px; font-size:var(--font-xs); color:var(--text-muted); text-align:center;">Nenhum produto cadastrado com este nome.<br>Você pode continuar digitando ou adicionar um produto personalizado.</div>';
                 return;
             }
 
             lista.forEach(p => {
-                // Puxa as colunas exatas da sua tabela
-                const nome = p.Produto || 'Produto sem nome';
-                const codigo = p.Codigo || '';
-                
                 const div = document.createElement('div');
                 div.className = 'autocomplete-item';
-                // Exibe o nome e o código (se houver) no dropdown
-                div.innerHTML = `<strong>${escapeHtml(nome)}</strong><span style="background:transparent; color:var(--text-muted); font-weight:normal; padding:0;">${escapeHtml(codigo)}</span>`;
+                div.innerHTML = `<strong>${escapeHtml(p.nome)}</strong>`;
                 
                 div.onclick = () => {
-                    input.value = nome;
+                    input.value = p.nome;
                     dropdown.style.display = 'none';
                     
-                    // Como não há preço no banco, move o cursor direto para o campo de digitar o valor
                     const row = input.closest('.produto-row');
                     const valorInput = row.querySelector('.prod-valor');
                     if (valorInput) valorInput.focus();
@@ -1054,9 +1067,9 @@
                         <button type="button" class="btn-add-item" onclick="adicionarProdutoRow()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Adicionar outro produto</button>
                         <div class="field-error" id="errItens"></div>
 
-                        <div class="total-modal-box">
-                            <span>Total Calculado:</span>
-                            <span class="valor-total" id="displayTotalModal">R$ 0,00</span>
+                        <div class="total-modal-box" style="margin-top: 16px; display: flex; justify-content: space-between; align-items: center; background: #f8fafc; padding: 12px 16px; border-radius: 8px; border: 1px solid var(--border-light);">
+                            <span style="font-weight: 600; color: var(--text-secondary);">Total Calculado:</span>
+                            <span class="valor-total" id="displayTotalModal" style="font-size: 1.25rem; font-weight: 800; color: var(--accent-green-dark);">R$ 0,00</span>
                         </div>
                     </div>
 
@@ -1203,7 +1216,7 @@
                 const { error } = await db.from('orcamentos').update({ status }).eq('id_orcamento', id); 
                 if (error) throw new Error(error.message);
                 voltarDetalhes(); carregarDados(); 
-            } catch(e) { console.error(e); alert("Erro ao atualizar status: " + e.message); }
+            } catch(e) { console.error(e); } // omitido alert a pedido do sistema
         }
 
         async function agendarContato() {
