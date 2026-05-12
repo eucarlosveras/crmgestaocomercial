@@ -861,85 +861,94 @@
             const motivo = document.getElementById('motivoPerda').value.trim(); 
             if (!motivo) { document.getElementById('errMotivo').textContent = 'Descreva o motivo.'; return; } 
             
-            const btn = event.currentTarget; btn.classList.add('saving'); btn.disabled = true;
+            const btn = event.currentTarget; 
+            btn.innerHTML = 'Salvando...'; 
+            btn.disabled = true;
+            
             try {
+                // Atualiza status no orçamento
                 await db.from('orcamentos').update({ status: 'Perdido' }).eq('id_orcamento', idOrcamentoParaPerder); 
+                // Registra o motivo na timeline
                 await db.from('comentarios').insert([{ id_orcamento: idOrcamentoParaPerder, texto: motivo, tipo: 'Perda', autor: currentUser.nome }]);
+                
                 fecharMotivoPerda(); voltarDetalhes(); carregarDados();
             } catch (e) {
                 console.error(e);
-                document.getElementById('errMotivo').textContent = 'Erro ao salvar.';
+                document.getElementById('errMotivo').textContent = 'Erro ao salvar no banco.';
             } finally {
-                btn.classList.remove('saving'); btn.disabled = false;
+                btn.innerHTML = 'Confirmar Perda';
+                btn.disabled = false;
             }
         }
         
         async function acaoDetalhes(id, status) { if (currentUser?.perfil !== 'Vendedor') return; await db.from('orcamentos').update({ status }).eq('id_orcamento', id); voltarDetalhes(); carregarDados(); }
 
         async function agendarContato() {
-            const data = document.getElementById('agendarData').value; const hora = document.getElementById('agendarHora').value; const tipo = document.getElementById('agendarTipo').value; const obs = document.getElementById('agendarObservacao')?.value?.trim() || '';
-            const tipoErro = document.getElementById('agendarTipoErro'); const msg = document.getElementById('agendarMsg');
-            if (!data) { msg.textContent = 'Selecione uma data.'; return; } if (!tipo) { tipoErro.textContent = 'Selecione o tipo de contato.'; document.getElementById('agendarTipo').style.borderColor = '#ef4444'; return; } else { tipoErro.textContent = ''; document.getElementById('agendarTipo').style.borderColor = 'var(--border-light)'; }
+            const data = document.getElementById('agendarData').value; 
+            const hora = document.getElementById('agendarHora').value; 
+            const tipo = document.getElementById('agendarTipo').value; 
+            const obs = document.getElementById('agendarObservacao')?.value?.trim() || '';
+            const tipoErro = document.getElementById('agendarTipoErro'); 
+            const msg = document.getElementById('agendarMsg');
             
-            const btn = document.getElementById('btnConfirmarAgendamento');
-            btn.querySelector('.btn-spinner').style.display = 'inline-block';
-            btn.querySelector('.btn-text').style.opacity = '0.7';
+            if (!data) { msg.textContent = 'Selecione uma data.'; return; } 
+            if (!tipo) { tipoErro.textContent = 'Selecione o tipo de contato.'; document.getElementById('agendarTipo').style.borderColor = '#ef4444'; return; } 
+            else { tipoErro.textContent = ''; document.getElementById('agendarTipo').style.borderColor = 'var(--border-light)'; }
+            
+            const btn = event.currentTarget;
+            const textoOriginal = btn.innerHTML;
+            btn.innerHTML = 'Agendando...';
             btn.disabled = true;
 
             try {
-                await db.from('orcamentos').update({ data_contato: data, hora_contato: hora, observacao_agendamento: obs }).eq('id_orcamento', clienteAtualParaDetalhes.id_orcamento);
+                // Salva o agendamento no orçamento
+                await db.from('orcamentos')
+                    .update({ data_contato: data, hora_contato: hora, observacao_agendamento: obs })
+                    .eq('id_orcamento', clienteAtualParaDetalhes.id_orcamento);
                 
+                // Registra o agendamento na timeline
                 const dataFormatada = new Date(data + 'T00:00:00').toLocaleDateString('pt-BR'); 
-                let texto = `Retorno agendado para ${dataFormatada}${hora ? ' às ' + hora : ''} • ${tipo}`; if (obs) texto += `\nLembrete: ${obs}`;
+                let texto = `Retorno agendado para ${dataFormatada}${hora ? ' às ' + hora : ''} • ${tipo}`; 
+                if (obs) texto += `\nLembrete: ${obs}`;
                 
                 await db.from('comentarios').insert([{ id_orcamento: clienteAtualParaDetalhes.id_orcamento, texto: texto, tipo: 'Sistema', autor: currentUser.nome }]);
                 
-                // Atualiza localmente para renderizar rapido
-                clienteAtualParaDetalhes.data_contato = data; clienteAtualParaDetalhes.hora_contato = hora; clienteAtualParaDetalhes.observacao_agendamento = obs;
-                
                 msg.textContent = 'Agendado!'; msg.style.color = 'var(--brand-blue)'; 
                 setTimeout(() => { msg.textContent = ''; }, 2000); 
-                abrirDetalhesCliente(clienteAtualParaDetalhes.id_orcamento); // Recarrega comentarios
+                abrirDetalhesCliente(clienteAtualParaDetalhes.id_orcamento); // Atualiza a tela
             } catch (e) {
                 console.error(e);
                 msg.textContent = 'Erro ao agendar.'; msg.style.color = '#ef4444';
             } finally {
-                btn.querySelector('.btn-spinner').style.display = 'none';
-                btn.querySelector('.btn-text').style.opacity = '1';
+                btn.innerHTML = textoOriginal;
                 btn.disabled = false;
             }
         }
 
         async function salvarComentario() {
-            const texto = document.getElementById('novoComentario').value.trim(); const msg = document.getElementById('comentarioMsg'); if (!texto) { msg.textContent = 'Escreva algo.'; return; }
+            const texto = document.getElementById('novoComentario').value.trim(); 
+            const msg = document.getElementById('comentarioMsg'); 
+            if (!texto) { msg.textContent = 'Escreva algo.'; return; }
             
-            const btn = document.getElementById('btnSalvarTimeline');
-            btn.querySelector('.btn-spinner').style.display = 'inline-block';
-            btn.querySelector('.btn-text').style.opacity = '0.7';
+            const btn = event.currentTarget;
+            const textoOriginal = btn.innerHTML;
+            btn.innerHTML = 'Salvando...';
             btn.disabled = true;
 
             try {
                 await db.from('comentarios').insert([{ id_orcamento: clienteAtualParaDetalhes.id_orcamento, texto: texto, tipo: 'Comentário', autor: currentUser.nome }]);
-                document.getElementById('novoComentario').value = ''; msg.textContent = 'Salvo!'; msg.style.color = 'var(--brand-blue)'; setTimeout(() => { msg.textContent = ''; }, 2000);
-                abrirDetalhesCliente(clienteAtualParaDetalhes.id_orcamento); // Recarrega comentarios
+                
+                document.getElementById('novoComentario').value = ''; 
+                msg.textContent = 'Salvo!'; msg.style.color = 'var(--brand-blue)'; 
+                setTimeout(() => { msg.textContent = ''; }, 2000);
+                abrirDetalhesCliente(clienteAtualParaDetalhes.id_orcamento); // Atualiza a tela
             } catch (e) {
                 console.error(e);
                 msg.textContent = 'Erro ao salvar.'; msg.style.color = '#ef4444';
             } finally {
-                btn.querySelector('.btn-spinner').style.display = 'none';
-                btn.querySelector('.btn-text').style.opacity = '1';
+                btn.innerHTML = textoOriginal;
                 btn.disabled = false;
             }
         }
 
-        function logout() {
-            currentUser = null; allOrcamentos = []; todosVendedores = []; todosUsuarios = []; selectedVendedor = 'todos'; historicoFaturamento = [];
-            document.getElementById('loginOverlay').classList.remove('hidden'); document.getElementById('sidebar').style.display = 'none';
-            document.getElementById('mainContent').style.display = 'none'; document.getElementById('fabButton').style.display = 'none';
-            document.getElementById('btnLogin').classList.remove('loading'); document.getElementById('btnLogin').disabled = false;
-            document.getElementById('loginMsg').innerHTML = '';
-            resetPinBalls(); pinInput.focus();
-        }
-    </script>
-</body>
-</html>
+        function carregarComentarios(id) { try { return JSON.parse(localStorage.getItem('crm_comentarios_' + id) || '[]'); } catch (e) { return []; } }
