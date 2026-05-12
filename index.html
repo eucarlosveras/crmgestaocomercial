@@ -645,6 +645,49 @@
 
         function atualizarIndicadorDigitacao() { const texto = document.getElementById('novoComentario')?.value || ''; const indicator = document.getElementById('typingIndicator'); if (indicator) indicator.classList.toggle('visible', texto.length > 0); }
 
+        async function salvarComentario() {
+            const texto = document.getElementById('novoComentario').value.trim();
+            const msg = document.getElementById('comentarioMsg');
+            
+            if (!texto) { 
+                msg.textContent = 'Digite um comentário.'; 
+                msg.style.color = '#ef4444'; 
+                return; 
+            }
+
+            const btn = document.getElementById('btnSalvarTimeline');
+            btn.querySelector('.btn-spinner').style.display = 'inline-block';
+            btn.querySelector('.btn-text').style.opacity = '0.7';
+            btn.disabled = true;
+            msg.textContent = '';
+
+            try {
+                const { error } = await db.from('comentarios').insert([{
+                    id_orcamento: clienteAtualParaDetalhes.id_orcamento,
+                    texto: texto,
+                    tipo: 'Comentário',
+                    autor: currentUser.nome
+                }]);
+
+                if (error) throw new Error(error.message);
+
+                // Limpa o campo e o indicador de digitação
+                document.getElementById('novoComentario').value = '';
+                atualizarIndicadorDigitacao();
+                
+                // Recarrega os detalhes do cliente para atualizar a Timeline
+                await abrirDetalhesCliente(clienteAtualParaDetalhes.id_orcamento);
+            } catch (e) {
+                console.error(e);
+                msg.textContent = 'Erro ao salvar: ' + e.message;
+                msg.style.color = '#ef4444';
+            } finally {
+                btn.querySelector('.btn-spinner').style.display = 'none';
+                btn.querySelector('.btn-text').style.opacity = '1';
+                btn.disabled = false;
+            }
+        }
+
         function buildVendedorOptions() { let opts = '<option value="todos" ' + (selectedVendedor === 'todos' ? 'selected' : '') + '>Todos os vendedores</option>'; todosVendedores.forEach(v => { opts += `<option value="${v.id_usuario}" ${selectedVendedor == v.id_usuario ? 'selected' : ''}>${v.nome}</option>`; }); return opts; }
         function buildMonthOptions() { let opts = ''; for (let i = 0; i < 12; i++) { const d = new Date(currentYear, i, 1); const val = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`; const sel = (d.getMonth() + 1 === currentMonth && d.getFullYear() === currentYear && !currentDay) ? 'selected' : ''; opts += `<option value="${val}" ${sel}>${d.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}</option>`; } return opts; }
         function buildDayOptions() { const daysInMonth = new Date(currentYear, currentMonth, 0).getDate(); let opts = `<option value="todos" ${!currentDay ? 'selected' : ''}>Todos os dias</option>`; for (let d = 1; d <= daysInMonth; d++) { const sel = currentDay === d ? 'selected' : ''; opts += `<option value="${d}" ${sel}>Dia ${d}</option>`; } return opts; }
