@@ -39,6 +39,7 @@
         textarea { resize: none; }
         #globalLoader { position: fixed; top: 0; left: 0; width: 100%; height: 3px; background: transparent; z-index: 9999; pointer-events: none; }
         #globalLoader .loader-fill { height: 100%; width: 0; background: var(--brand-blue); transition: width 0.4s ease; } #globalLoader.loading .loader-fill { width: 70%; transition: width 2s ease; }
+        
         .login-overlay { position: fixed; inset: 0; background: radial-gradient(circle at center, #e2e8f0 0%, #cbd5e1 100%); display: flex; align-items: center; justify-content: center; z-index: 9999; transition: opacity 0.4s ease, visibility 0.4s ease; }
         body.dark .login-overlay { background: radial-gradient(circle at center, #1e293b 0%, #0a0f18 100%); } .login-overlay.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
         .login-card { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(12px); border-radius: var(--radius-lg); padding: 56px 48px; box-shadow: 0 16px 48px rgba(0, 0, 0, 0.08); text-align: center; width: 100%; max-width: 440px; border: 1px solid rgba(255, 255, 255, 0.4); animation: fadeInUp 0.6s cubic-bezier(0.22, 0.61, 0.36, 1); }
@@ -59,6 +60,7 @@
         .login-btn.loading .btn-text { opacity: 0; } .login-btn .spinner { position: absolute; width: 22px; height: 22px; border: 3px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 0.8s cubic-bezier(0.4, 0, 0.2, 1) infinite; opacity: 0; transition: opacity 0.2s; }
         .login-btn.loading .spinner { opacity: 1; } .login-msg { display: flex; align-items: center; justify-content: center; gap: 6px; font-size: var(--font-sm); margin-top: 16px; min-height: 20px; color: #ef4444; font-weight: 600; transition: opacity 0.3s; }
         .login-msg svg { width: 16px; height: 16px; stroke-width: 2.5; } .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip: rect(0,0,0,0); border: 0; }
+        
         .sidebar { width: 240px; min-width: 240px; height: 100vh; background: var(--sidebar-bg); display: flex; flex-direction: column; position: fixed; top: 0; left: 0; z-index: 100; padding: 28px 0 0; }
         .sidebar-greeting { padding: 0 20px 20px; border-bottom: 1px solid rgba(255,255,255,0.08); margin-bottom: 8px; } .sidebar-greeting .greeting-text { font-size: var(--font-md); font-weight: 700; color: #fff; } .sidebar-greeting .greeting-sub { font-size: var(--font-sm); color: var(--sidebar-text-muted); margin-top: 6px; }
         .sidebar-nav { flex: 1; padding: 8px 12px; display: flex; flex-direction: column; gap: 2px; }
@@ -73,6 +75,10 @@
         .btn-logout-sidebar { display: flex; align-items: center; gap: 10px; background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.3); color: #fca5a5; padding: 10px 14px; border-radius: var(--radius-sm); cursor: pointer; font-size: var(--font-sm); width: 100%; text-align: left; font-family: 'Inter', sans-serif; font-weight: 600; transition: all var(--transition); }
         .btn-logout-sidebar:hover { background: rgba(239,68,68,0.25); color: #fff; border-color: rgba(239,68,68,0.6); } .btn-logout-sidebar svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2; }
         .theme-toggle { background: transparent; border: 1px solid rgba(255,255,255,0.2); color: var(--sidebar-text-muted); padding: 8px 12px; border-radius: var(--radius-sm); cursor: pointer; font-size: var(--font-xs); width: 100%; text-align: center; font-family: 'Inter', sans-serif; }
+        .main-content { margin-left: 240px; flex: 1; padding: 28px 32px 40px; display: flex; flex-direction: column; gap: 20px; }
+        .dashboard-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; } .dashboard-header h1 { font-size: var(--font-xl); font-weight: 700; } .dashboard-header .header-controls { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+        .btn-voltar { display: inline-flex; align-items: center; gap: 8px; background: var(--card-bg); border: 1.5px solid var(--border-light); color: var(--text-primary); padding: 10px 16px; border-radius: var(--radius-sm); cursor: pointer; font-weight: 600; font-size: var(--font-sm); font-family: 'Inter', sans-serif; transition: all var(--transition); } .btn-voltar:hover { background: #f1f5f9; border-color: #cbd5e1; } body.dark .btn-voltar:hover { background: #1e293b; border-color: #475569; }
+        
         .header-notification-area { position: relative; }
         .btn-notification { background: var(--card-bg); border: 1.5px solid var(--border-light); border-radius: 50%; width: 40px; height: 40px; cursor: pointer; display: flex; align-items: center; justify-content: center; position: relative; transition: all var(--transition); font-family: 'Inter', sans-serif; }
         .btn-notification:hover { border-color: #cbd5e1; box-shadow: 0 2px 8px rgba(0,0,0,0.06); } .btn-notification svg { width: 18px; height: 18px; stroke: var(--text-secondary); fill: none; stroke-width: 2; }
@@ -82,23 +88,11 @@
         .notification-dropdown .notif-item { padding: 12px 18px; border-bottom: 1px solid var(--border-light); font-size: var(--font-sm); cursor: pointer; transition: background 0.15s; display: flex; align-items: flex-start; gap: 10px; } .notification-dropdown .notif-item:hover { background: rgba(0,0,0,0.02); }
         .notification-dropdown .notif-item .notif-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 6px; } .notification-dropdown .notif-item .notif-dot.warning { background: #f59e0b; } .notification-dropdown .notif-item .notif-dot.critical { background: #ef4444; } .notification-dropdown .notif-item .notif-dot.info { background: var(--brand-blue); }
         .notification-dropdown .notif-empty { padding: 24px; text-align: center; color: var(--text-muted); font-size: var(--font-sm); }
-        .main-content { margin-left: 240px; flex: 1; padding: 28px 32px 40px; display: flex; flex-direction: column; gap: 20px; }
-        .dashboard-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; } .dashboard-header h1 { font-size: var(--font-xl); font-weight: 700; } .dashboard-header .header-controls { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-        .btn-voltar { display: inline-flex; align-items: center; gap: 8px; background: var(--card-bg); border: 1.5px solid var(--border-light); color: var(--text-primary); padding: 10px 16px; border-radius: var(--radius-sm); cursor: pointer; font-weight: 600; font-size: var(--font-sm); font-family: 'Inter', sans-serif; transition: all var(--transition); } .btn-voltar:hover { background: #f1f5f9; border-color: #cbd5e1; } body.dark .btn-voltar:hover { background: #1e293b; border-color: #475569; }
-        .health-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; } .health-card { background: var(--card-bg); border-radius: var(--radius-md); padding: 16px 20px; border: 1px solid var(--border-light); display: flex; align-items: center; gap: 16px; box-shadow: var(--shadow-sm); }
-        .health-icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; } .health-icon.success { background: rgba(16,185,129,0.1); color: var(--accent-green); } .health-icon.warning { background: rgba(245,158,11,0.1); color: #f59e0b; } .health-icon.info { background: rgba(59,130,246,0.1); color: var(--brand-blue); }
-        .health-info h4 { font-size: var(--font-xs); color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; } .health-info p { font-size: var(--font-sm); font-weight: 700; color: var(--text-primary); }
-        .action-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; } .action-btn-card { background: var(--card-bg); border: 1px solid var(--border-light); border-radius: var(--radius-md); padding: 20px; text-align: center; cursor: pointer; transition: all var(--transition); display: flex; flex-direction: column; align-items: center; gap: 12px; box-shadow: var(--shadow-sm); }
-        .action-btn-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-md); border-color: var(--brand-blue); } .action-btn-card .icon-wrapper { width: 48px; height: 48px; border-radius: 50%; background: #f1f5f9; display: flex; align-items: center; justify-content: center; color: var(--text-secondary); transition: all 0.3s; } body.dark .action-btn-card .icon-wrapper { background: #1e293b; } .action-btn-card:hover .icon-wrapper { background: var(--brand-blue); color: #fff; }
-        .action-btn-card h4 { font-size: var(--font-sm); font-weight: 700; color: var(--text-primary); margin-bottom: 4px; } .action-btn-card p { font-size: var(--font-xs); color: var(--text-muted); }
-        .system-tip { background: linear-gradient(135deg, rgba(59,130,246,0.1), rgba(139,92,246,0.1)); border: 1px solid rgba(59,130,246,0.2); border-radius: var(--radius-md); padding: 20px; margin-top: 20px; display: flex; align-items: flex-start; gap: 16px; } .system-tip svg { color: var(--brand-blue); flex-shrink: 0; } .system-tip h4 { font-size: var(--font-sm); font-weight: 700; color: var(--text-primary); margin-bottom: 6px; } .system-tip p { font-size: var(--font-sm); color: var(--text-secondary); line-height: 1.5; }
-        .btn-primary-action { background: var(--brand-blue); color: #fff; border: none; padding: 12px 22px; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: var(--font-sm); font-family: 'Inter', sans-serif; transition: all var(--transition); display: inline-flex; align-items: center; gap: 8px; } .btn-primary-action:hover { background: var(--brand-blue-dark); box-shadow: 0 4px 12px rgba(59,130,246,0.3); }
-        .btn-danger-ghost { background: var(--danger-light-bg); color: var(--danger-text); border: 1.5px solid var(--danger-border); padding: 12px 22px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: var(--font-sm); font-family: 'Inter', sans-serif; transition: all var(--transition); display: inline-flex; align-items: center; gap: 8px; } .btn-danger-ghost:hover { background: var(--danger-border); }
-        .btn-salvar-timeline { background: var(--brand-blue); color: #fff; border: none; padding: 12px 28px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: var(--font-sm); font-family: 'Inter', sans-serif; display: inline-flex; align-items: center; justify-content: center; gap: 10px; transition: all var(--transition); } .btn-salvar-timeline:hover { background: var(--brand-blue-dark); } .btn-salvar-timeline svg { width: 16px; height: 16px; }
         .filter-group { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; } .filter-wrapper { position: relative; display: flex; align-items: center; } .filter-wrapper .filter-icon { position: absolute; left: 12px; pointer-events: none; z-index: 1; } .filter-wrapper .filter-icon svg { width: 15px; height: 15px; stroke: #94a3b8; fill: none; stroke-width: 2; }
         .month-select, .vendedor-select, .day-select { padding: 10px 14px 10px 36px; border-radius: 20px; border: 1.5px solid #e2e8f0; background: var(--card-bg); color: var(--text-primary); font-size: var(--font-sm); font-weight: 500; cursor: pointer; appearance: none; -webkit-appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 32px; font-family: 'Inter', sans-serif; box-shadow: 0 1px 2px rgba(0,0,0,0.02); transition: all 0.2s ease; }
         .month-select:hover, .vendedor-select:hover, .day-select:hover { border-color: #cbd5e1; box-shadow: 0 2px 6px rgba(0,0,0,0.04); } .month-select:focus, .vendedor-select:focus, .day-select:focus { border-color: var(--brand-blue); box-shadow: 0 0 0 3px rgba(59,130,246,0.1); outline: none; }
         .search-input { padding: 10px 14px; border-radius: 20px; border: 1.5px solid #e2e8f0; background: var(--card-bg); color: var(--text-primary); font-size: var(--font-sm); width: 200px; font-family: 'Inter', sans-serif; transition: all 0.2s ease; } .search-input:focus { border-color: var(--brand-blue); box-shadow: 0 0 0 3px rgba(59,130,246,0.1); outline: none; }
+        
         .kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; } .kpi-card { background: var(--card-bg); border-radius: var(--radius-md); padding: 24px; box-shadow: var(--shadow-sm); border: 1px solid var(--border-light); display: flex; flex-direction: column; justify-content: center; } .kpi-card.vendido-highlight { border-bottom: 4px solid var(--accent-green); }
         .kpi-label-row { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; } .kpi-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; } .kpi-dot.blue { background: #60a5fa; } .kpi-dot.green { background: #10b981; } .kpi-dot.orange { background: #f59e0b; }
         .kpi-label { font-size: var(--font-sm); font-weight: 500; color: var(--text-secondary); text-transform: none; } .kpi-value { font-size: 2rem; font-weight: 800; line-height: 1.1; color: var(--text-primary); }
@@ -124,6 +118,7 @@
         table tbody td { padding: 12px 14px; border-bottom: 1px solid var(--border-light); vertical-align: middle; } table tbody tr:hover { background: rgba(0,0,0,0.01); }
         .client-name { font-weight: 600; color: var(--brand-blue-dark); cursor: pointer; } .client-name:hover { text-decoration: underline; }
         .pagination { display: flex; align-items: center; gap: 8px; margin-top: 16px; justify-content: flex-end; font-size: var(--font-sm); } .pagination button { padding: 6px 12px; border-radius: 6px; border: 1px solid var(--border-light); background: var(--card-bg); color: var(--text-primary); cursor: pointer; font-weight: 500; } .pagination button:disabled { opacity: 0.5; cursor: default; }
+        
         .detalhes-page-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
         .info-card { background: var(--card-bg); border-radius: var(--radius-md); padding: 28px; box-shadow: var(--shadow-md); border: 1px solid var(--border-light); display: flex; flex-direction: column; }
         .info-card-title { font-size: var(--font-sm); font-weight: 600; margin-bottom: 20px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); display: flex; align-items: center; gap: 8px; } .info-card-icon { width: 18px; height: 18px; stroke: var(--text-muted); fill: none; }
@@ -146,6 +141,10 @@
         .comment-edit-actions { display: flex; gap: 8px; margin-top: 6px; justify-content: flex-end; } .comment-edit-actions button { padding: 6px 14px; border-radius: 6px; font-size: var(--font-xs); font-weight: 600; cursor: pointer; border: none; font-family: 'Inter', sans-serif; }
         .comment-edit-actions .btn-save { background: var(--brand-blue); color: #fff; } .comment-edit-actions .btn-cancel { background: #e2e8f0; color: var(--text-secondary); } body.dark .comment-edit-actions .btn-cancel { background: #334155; color: #cbd5e1; }
         .typing-indicator { font-size: var(--font-xs); color: var(--text-muted); font-style: italic; display: none; margin-top: 8px; } .typing-indicator.visible { display: block; }
+        
+        .btn-primary-action { background: var(--brand-blue); color: #fff; border: none; padding: 12px 22px; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: var(--font-sm); font-family: 'Inter', sans-serif; transition: all var(--transition); display: inline-flex; align-items: center; gap: 8px; } .btn-primary-action:hover { background: var(--brand-blue-dark); box-shadow: 0 4px 12px rgba(59,130,246,0.3); }
+        .btn-danger-ghost { background: var(--danger-light-bg); color: var(--danger-text); border: 1.5px solid var(--danger-border); padding: 12px 22px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: var(--font-sm); font-family: 'Inter', sans-serif; transition: all var(--transition); display: inline-flex; align-items: center; gap: 8px; } .btn-danger-ghost:hover { background: var(--danger-border); }
+        .btn-salvar-timeline { background: var(--brand-blue); color: #fff; border: none; padding: 12px 28px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: var(--font-sm); font-family: 'Inter', sans-serif; display: inline-flex; align-items: center; justify-content: center; gap: 10px; transition: all var(--transition); } .btn-salvar-timeline:hover { background: var(--brand-blue-dark); } .btn-salvar-timeline svg { width: 16px; height: 16px; }
         .fab { position: fixed; bottom: 32px; right: 36px; width: 56px; height: 56px; border-radius: 50%; background: var(--brand-blue); color: #fff; font-size: 28px; border: none; cursor: pointer; box-shadow: 0 8px 24px rgba(59,130,246,0.4); display: flex; align-items: center; justify-content: center; z-index: 200; transition: transform 0.2s, background 0.2s; } .fab:hover { background: var(--brand-blue-dark); transform: scale(1.06); }
         .modal-overlay { position: fixed; inset: 0; background: rgba(15,23,42,0.6); backdrop-filter: blur(6px); z-index: 300; display: flex; align-items: center; justify-content: center; opacity: 0; visibility: hidden; transition: all 0.25s ease; } .modal-overlay.open { opacity: 1; visibility: visible; }
         .modal-card { background: var(--card-bg); border-radius: var(--radius-md); padding: 28px 24px; max-width: 500px; width: 90%; max-height: 85vh; overflow-y: auto; border: 1px solid var(--border-light); box-shadow: 0 20px 48px rgba(0,0,0,0.2); transform: translateY(20px); transition: transform 0.25s ease; } .modal-overlay.open .modal-card { transform: translateY(0); }
@@ -162,7 +161,6 @@
 <body>
     <div id="globalLoader"><div class="loader-fill"></div></div>
 
-    <!-- LOGIN -->
     <div class="login-overlay" id="loginOverlay">
         <div class="login-card">
             <div class="login-icon" aria-hidden="true">CV</div>
@@ -180,7 +178,6 @@
         </div>
     </div>
 
-    <!-- SIDEBAR -->
     <aside class="sidebar" id="sidebar" style="display:none;" role="navigation" aria-label="Menu principal">
         <div class="sidebar-greeting"><div class="greeting-text" id="sidebarGreeting">Bom dia!</div><div class="greeting-sub" id="sidebarSub">Sua meta está próxima!</div></div>
         <nav class="sidebar-nav">
@@ -197,7 +194,6 @@
     <main class="main-content" id="mainContent" style="display:none;"></main>
     <button class="fab" id="fabButton" style="display:none;" onclick="openModal()" aria-label="Novo orçamento" title="Novo orçamento">+</button>
 
-    <!-- MODAIS DE VENDA -->
     <div class="modal-overlay" id="modalOverlay" onclick="if(event.target === this) closeModal()">
         <div class="modal-card">
             <h3>Novo Orçamento</h3>
@@ -215,9 +211,8 @@
     <div class="modal-overlay" id="modalMotivoPerda" onclick="if(event.target === this) fecharMotivoPerda()"><div class="modal-card" style="max-width:420px;"><h3>Motivo da Perda</h3><textarea id="motivoPerda" rows="3" placeholder="Descreva o motivo..."></textarea><div class="field-error" id="errMotivo"></div><div class="modal-btns"><button class="btn-cancelar-modal" onclick="fecharMotivoPerda()">Cancelar</button><button class="btn-salvar-modal" onclick="confirmarPerda()">Confirmar Perda</button></div></div></div>
     <div class="modal-overlay" id="modalConfirmaFechamento" onclick="if(event.target === this) fecharConfirmaFechamento()"><div class="modal-card" style="max-width:420px;"><h3>Confirmar Fechamento</h3><p style="margin-bottom:16px;">Deseja realmente fechar esta venda?</p><div class="modal-btns"><button class="btn-cancelar-modal" onclick="fecharConfirmaFechamento()">Cancelar</button><button class="btn-salvar-modal" id="btnConfirmaFechar">Confirmar</button></div></div></div>
     <div class="modal-overlay" id="modalEditarMeta" onclick="if(event.target === this) fecharModalMeta()"><div class="modal-card" style="max-width:420px;"><h3>Editar Meta</h3><label for="inputMetaValor">Nova meta (R$)</label><input type="text" id="inputMetaValor" placeholder="R$ 50.000,00" inputmode="decimal"><div class="field-error" id="errMeta"></div><div class="modal-btns"><button class="btn-cancelar-modal" onclick="fecharModalMeta()">Cancelar</button><button class="btn-salvar-modal" id="btnSalvarMeta" onclick="salvarNovaMeta()"><span class="btn-spinner"></span><span class="btn-text">Salvar</span></button></div></div></div>
-    <div class="modal-overlay" id="modalExcluirComentario" onclick="if(event.target === this) fecharModalExcluir()"><div class="modal-card" style="max-width:420px;"><h3>Excluir comentário</h3><p style="margin-bottom:16px;">Tem certeza que deseja excluir este comentário?</p><div class="modal-btns"><button class="btn-cancelar-modal" onclick="fecharModalExcluir()">Cancelar</button><button class="btn-salvar-modal" id="btnConfirmarExclusao" style="background:#ef4444;"><span class="btn-spinner"></span><span class="btn-text">Excluir</span></button></div></div></div>
+    <div class="modal-overlay" id="modalExcluirComentario" onclick="if(event.target === this) fecharModalExcluir()"><div class="modal-card" style="max-width:420px;"><h3>Excluir comentário</h3><p style="margin-bottom:16px;">Tem certeza que deseja excluir este comentário?</p><div class="modal-btns"><button class="btn-cancelar-modal" onclick="fecharModalExcluir()">Cancelar</button><button class="btn-salvar-modal" id="btnConfirmarExclusao" style="background:#ef4444;" onclick="confirmarExclusaoComentario()"><span class="btn-spinner"></span><span class="btn-text">Excluir</span></button></div></div></div>
 
-    <!-- MODAL DE USUÁRIOS (ADMIN) -->
     <div class="modal-overlay" id="modalUsuarioAdmin" onclick="if(event.target === this) fecharModalUsuarioAdmin()">
         <div class="modal-card" style="max-width:420px;">
             <h3 id="modalUsuarioTitle">Novo Usuário</h3>
@@ -232,12 +227,11 @@
         </div>
     </div>
 
-    <!-- MODAL DE EXCLUSÃO DE USUÁRIO -->
     <div class="modal-overlay" id="modalExcluirUsuarioAdmin" onclick="if(event.target === this) fecharModalExcluirUsuario()">
         <div class="modal-card" style="max-width:420px;">
             <h3>Excluir Usuário</h3>
             <p style="margin-bottom:16px;">Tem certeza que deseja excluir <strong><span id="nomeUsuarioExcluir"></span></strong>?</p>
-            <p style="margin-bottom:16px; font-size:var(--font-xs); color:var(--danger-text); background:var(--danger-light-bg); padding:10px; border-radius:8px; border:1px solid var(--danger-border);"><strong>Atenção:</strong> Se este usuário tiver orçamentos registrados, a exclusão poderá falhar ou apagar o histórico de vendas. Recomendamos apenas <strong>Inativar</strong> o usuário editando seu perfil.</p>
+            <p style="margin-bottom:16px; font-size:var(--font-xs); color:var(--danger-text); background:var(--danger-light-bg); padding:10px; border-radius:8px; border:1px solid var(--danger-border);"><strong>Atenção:</strong> Se este usuário tiver orçamentos registrados, a exclusão poderá falhar ou apagar o histórico de vendas.</p>
             <div class="field-error" id="errExcluirUsuario"></div>
             <div class="modal-btns"><button class="btn-cancelar-modal" onclick="fecharModalExcluirUsuario()">Cancelar</button><button class="btn-salvar-modal" id="btnConfirmarExclusaoUsuario" style="background:#ef4444;" onclick="confirmarExclusaoUsuario()">Excluir Definitivamente</button></div>
         </div>
@@ -351,13 +345,11 @@
             
             try {
                 const { data: userArray, error } = await db.from('usuarios').select('*').eq('pin_acesso', pin).limit(1);
-                
                 if (error) throw new Error(error.message);
-                
-                if (!userArray || userArray.length === 0) { throw new Error('PIN não encontrado no banco de dados.'); }
+                if (!userArray || userArray.length === 0) throw new Error('PIN não encontrado no banco de dados.');
                 
                 const data = userArray[0];
-                if (data.status === 'Inativo') { throw new Error('Conta desativada. Fale com o Administrador.'); }
+                if (data.status === 'Inativo') throw new Error('Conta desativada. Fale com o Administrador.');
 
                 const nomeUsuario = data.nome || 'Usuário'; const perfilUsuario = data.perfil || 'Vendedor';
                 currentUser = { ...data, nome: nomeUsuario, perfil: perfilUsuario };
@@ -400,7 +392,9 @@
             if (currentDay) { const start = new Date(currentYear, currentMonth - 1, currentDay).toISOString(); const end = new Date(currentYear, currentMonth - 1, currentDay, 23, 59, 59).toISOString(); query = query.gte('data_criacao', start).lte('data_criacao', end); }
             else if (currentMonth && currentYear) { const startDate = new Date(currentYear, currentMonth - 1, 1).toISOString(); const endDate = new Date(currentYear, currentMonth, 0, 23, 59, 59).toISOString(); query = query.gte('data_criacao', startDate).lte('data_criacao', endDate); }
             
-            const { data } = await query.order('data_criacao', { ascending: false });
+            const { data, error } = await query.order('data_criacao', { ascending: false });
+            if (error) console.error("Erro no carregamento", error);
+
             allOrcamentos = data || [];
             atualizarBadge();
             const notificacoes = buildNotifications(); const alertCount = notificacoes.filter(n => n.id !== null).length; renderNotificationBadge(alertCount);
@@ -506,30 +500,44 @@
             const novoTexto = input.value.trim();
             const btn = event.currentTarget; btn.classList.add('saving'); btn.disabled = true;
             try {
-                await db.from('comentarios').update({ texto: novoTexto }).eq('id_comentario', id_comentario);
+                const { error } = await db.from('comentarios').update({ texto: novoTexto }).eq('id_comentario', id_comentario);
+                if (error) throw new Error(error.message);
+                
                 const index = clienteAtualParaDetalhes.comentarios.findIndex(c => c.id_comentario === id_comentario);
                 if(index > -1) { clienteAtualParaDetalhes.comentarios[index].texto = novoTexto; delete clienteAtualParaDetalhes.comentarios[index]._editando; }
                 renderDetalhesClientePage();
-            } catch(e) { console.error(e); btn.classList.remove('saving'); btn.disabled = false; }
+            } catch(e) { 
+                console.error(e); 
+                btn.classList.remove('saving'); btn.disabled = false;
+                
+                let errSpan = btn.parentElement.querySelector('.edit-error');
+                if (!errSpan) {
+                    errSpan = document.createElement('span'); errSpan.className = 'edit-error'; errSpan.style.color = '#ef4444'; errSpan.style.fontSize = '12px';
+                    btn.parentElement.appendChild(errSpan);
+                }
+                errSpan.textContent = " Erro ao salvar.";
+            }
         }
         function abrirModalExcluirComentario(id_comentario) { comentarioParaExcluir = id_comentario; document.getElementById('modalExcluirComentario').classList.add('open'); }
         function fecharModalExcluir() { document.getElementById('modalExcluirComentario').classList.remove('open'); comentarioParaExcluir = null; const btn = document.getElementById('btnConfirmarExclusao'); btn.classList.remove('saving'); btn.disabled = false;}
+        
         async function confirmarExclusaoComentario() { 
             if (!comentarioParaExcluir) return; 
             const btn = document.getElementById('btnConfirmarExclusao'); btn.classList.add('saving'); btn.disabled = true;
             try {
-                await db.from('comentarios').delete().eq('id_comentario', comentarioParaExcluir);
+                const { error } = await db.from('comentarios').delete().eq('id_comentario', comentarioParaExcluir);
+                if (error) throw new Error(error.message);
+                
                 clienteAtualParaDetalhes.comentarios = clienteAtualParaDetalhes.comentarios.filter(c => c.id_comentario !== comentarioParaExcluir);
                 fecharModalExcluir(); renderDetalhesClientePage();
-            } catch(e) { console.error(e); btn.classList.remove('saving'); btn.disabled = false; }
+            } catch(e) { 
+                console.error(e); 
+                btn.classList.remove('saving'); btn.disabled = false; 
+                alert("Erro ao excluir: " + e.message);
+            }
         }
 
         function atualizarIndicadorDigitacao() { const texto = document.getElementById('novoComentario')?.value || ''; const indicator = document.getElementById('typingIndicator'); if (indicator) indicator.classList.toggle('visible', texto.length > 0); }
-        
-        function getMotivoContatoFromComentarios(id) { 
-            const orc = allOrcamentos.find(o => o.id_orcamento == id);
-            return orc && orc.observacao_agendamento ? orc.observacao_agendamento : '-'; 
-        }
 
         function buildVendedorOptions() { let opts = '<option value="todos" ' + (selectedVendedor === 'todos' ? 'selected' : '') + '>Todos os vendedores</option>'; todosVendedores.forEach(v => { opts += `<option value="${v.id_usuario}" ${selectedVendedor == v.id_usuario ? 'selected' : ''}>${v.nome}</option>`; }); return opts; }
         function buildMonthOptions() { let opts = ''; for (let i = 0; i < 12; i++) { const d = new Date(currentYear, i, 1); const val = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`; const sel = (d.getMonth() + 1 === currentMonth && d.getFullYear() === currentYear && !currentDay) ? 'selected' : ''; opts += `<option value="${val}" ${sel}>${d.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}</option>`; } return opts; }
@@ -620,7 +628,8 @@
             
             showLoader();
             try {
-                const { data: comentarios } = await db.from('comentarios').select('*').eq('id_orcamento', id).order('data_criacao', { ascending: true });
+                const { data: comentarios, error } = await db.from('comentarios').select('*').eq('id_orcamento', id).order('data_criacao', { ascending: true });
+                if(error) throw new Error(error.message);
                 clienteAtualParaDetalhes.comentarios = comentarios || [];
             } catch(e) {
                 console.error("Erro ao buscar comentarios", e);
@@ -740,13 +749,15 @@
 
         function abrirModalMeta(id, nome, valorAtual) { idMetaEdicao = id; document.getElementById('inputMetaValor').value = 'R$ ' + valorAtual.toLocaleString('pt-BR'); document.getElementById('errMeta').textContent = ''; document.getElementById('modalEditarMeta').classList.add('open'); document.getElementById('inputMetaValor').focus(); }
         function fecharModalMeta() { document.getElementById('modalEditarMeta').classList.remove('open'); idMetaEdicao = null; const btn = document.getElementById('btnSalvarMeta'); btn.classList.remove('saving'); btn.disabled = false;}
+        
         async function salvarNovaMeta() { 
             const raw = document.getElementById('inputMetaValor').value.replace(/[^\d,]/g, '').replace(',', '.'); const valor = parseFloat(raw); 
             if (!valor || valor <= 0) { document.getElementById('errMeta').textContent = 'Valor inválido.'; return; } 
             
             const btn = document.getElementById('btnSalvarMeta'); btn.classList.add('saving'); btn.disabled = true;
             try {
-                await db.from('usuarios').update({ meta_mensal: Math.round(valor) }).eq('id_usuario', idMetaEdicao);
+                const { error } = await db.from('usuarios').update({ meta_mensal: Math.round(valor) }).eq('id_usuario', idMetaEdicao);
+                if (error) throw new Error(error.message);
                 
                 const userIndex = todosUsuarios.findIndex(u => u.id_usuario === idMetaEdicao);
                 if(userIndex > -1) todosUsuarios[userIndex].meta_mensal = Math.round(valor);
@@ -757,7 +768,7 @@
                 fecharModalMeta(); renderMetas();
             } catch(e) {
                 console.error(e);
-                document.getElementById('errMeta').textContent = 'Erro ao salvar.';
+                document.getElementById('errMeta').textContent = 'Erro ao salvar: ' + e.message;
                 btn.classList.remove('saving'); btn.disabled = false;
             }
         }
@@ -776,9 +787,7 @@
                     const s = o.status;
                     if (currentFilter === 'Vendido' || currentFilter === 'Pós-Venda') return s === 'Fechado' || s === 'Vendido' || s === 'Pós-Venda';
                     if (currentFilter === 'Perdido') return s === 'Declinado' || s === 'Perdido';
-                    if (['Contato Inicial', 'Negociação de Valores', 'Aguardando Decisão'].includes(currentFilter)) {
-                        return s === currentFilter || s === 'Em Negociação'; 
-                    }
+                    if (['Contato Inicial', 'Negociação de Valores', 'Aguardando Decisão'].includes(currentFilter)) return s === currentFilter || s === 'Em Negociação'; 
                     return s === currentFilter;
                 });
             }
@@ -856,27 +865,40 @@
 
         async function confirmarPerda() { 
             const motivo = document.getElementById('motivoPerda').value.trim(); 
-            if (!motivo) { document.getElementById('errMotivo').textContent = 'Descreva o motivo.'; return; } 
+            const errMotivo = document.getElementById('errMotivo');
+            if (!motivo) { errMotivo.textContent = 'Descreva o motivo.'; return; } 
             
             const btn = event.currentTarget; 
+            const btnOrig = btn.innerHTML;
             btn.innerHTML = 'Salvando...'; 
             btn.disabled = true;
             
             try {
-                await db.from('orcamentos').update({ status: 'Perdido' }).eq('id_orcamento', idOrcamentoParaPerder); 
-                await db.from('comentarios').insert([{ id_orcamento: idOrcamentoParaPerder, texto: motivo, tipo: 'Perda', autor: currentUser.nome }]);
+                const { error: err1 } = await db.from('orcamentos').update({ status: 'Perdido' }).eq('id_orcamento', idOrcamentoParaPerder); 
+                if (err1) throw new Error(err1.message);
                 
-                fecharMotivoPerda(); voltarDetalhes(); carregarDados();
+                const { error: err2 } = await db.from('comentarios').insert([{ id_orcamento: idOrcamentoParaPerder, texto: motivo, tipo: 'Perda', autor: currentUser.nome }]);
+                if (err2) throw new Error(err2.message);
+
+                fecharMotivoPerda(); 
+                await abrirDetalhesCliente(clienteAtualParaDetalhes?.id_orcamento || idOrcamentoParaPerder); 
+                carregarDados();
             } catch (e) {
                 console.error(e);
-                document.getElementById('errMotivo').textContent = 'Erro ao salvar no banco.';
-            } finally {
-                btn.innerHTML = 'Confirmar Perda';
+                errMotivo.textContent = 'Erro ao salvar: ' + e.message;
+                btn.innerHTML = btnOrig;
                 btn.disabled = false;
-            }
+            } 
         }
         
-        async function acaoDetalhes(id, status) { if (currentUser?.perfil !== 'Vendedor') return; await db.from('orcamentos').update({ status }).eq('id_orcamento', id); voltarDetalhes(); carregarDados(); }
+        async function acaoDetalhes(id, status) { 
+            if (currentUser?.perfil !== 'Vendedor') return; 
+            try {
+                const { error } = await db.from('orcamentos').update({ status }).eq('id_orcamento', id); 
+                if (error) throw new Error(error.message);
+                voltarDetalhes(); carregarDados(); 
+            } catch(e) { console.error(e); alert("Erro ao atualizar status: " + e.message); }
+        }
 
         async function agendarContato() {
             const data = document.getElementById('agendarData').value; 
@@ -896,27 +918,34 @@
             btn.disabled = true;
 
             try {
-                await db.from('orcamentos')
+                const { error: err1 } = await db.from('orcamentos')
                     .update({ data_contato: data, hora_contato: hora, observacao_agendamento: obs })
                     .eq('id_orcamento', clienteAtualParaDetalhes.id_orcamento);
+                if (err1) throw new Error(err1.message);
                 
                 const dataFormatada = new Date(data + 'T00:00:00').toLocaleDateString('pt-BR'); 
                 let texto = `Retorno agendado para ${dataFormatada}${hora ? ' às ' + hora : ''} • ${tipo}`; 
                 if (obs) texto += `\nLembrete: ${obs}`;
                 
-                await db.from('comentarios').insert([{ id_orcamento: clienteAtualParaDetalhes.id_orcamento, texto: texto, tipo: 'Sistema', autor: currentUser.nome }]);
+                const { error: err2 } = await db.from('comentarios').insert([{ id_orcamento: clienteAtualParaDetalhes.id_orcamento, texto: texto, tipo: 'Sistema', autor: currentUser.nome }]);
+                if (err2) throw new Error(err2.message);
+
+                await abrirDetalhesCliente(clienteAtualParaDetalhes.id_orcamento); 
                 
-                msg.textContent = 'Agendado!'; msg.style.color = 'var(--brand-blue)'; 
-                setTimeout(() => { msg.textContent = ''; }, 2000); 
-                abrirDetalhesCliente(clienteAtualParaDetalhes.id_orcamento); 
+                const newMsg = document.getElementById('agendarMsg');
+                if (newMsg) {
+                    newMsg.textContent = 'Agendado com sucesso!'; newMsg.style.color = 'var(--brand-blue)'; 
+                    setTimeout(() => { const m = document.getElementById('agendarMsg'); if(m) m.textContent = ''; }, 2500); 
+                }
             } catch (e) {
                 console.error(e);
-                msg.textContent = 'Erro ao agendar.'; msg.style.color = '#ef4444';
-            } finally {
+                msg.textContent = 'Erro ao agendar: ' + e.message; 
+                msg.style.color = '#ef4444';
+                
                 btn.querySelector('.btn-spinner').style.display = 'none';
                 btn.querySelector('.btn-text').style.opacity = '1';
                 btn.disabled = false;
-            }
+            } 
         }
 
         async function salvarComentario() {
@@ -928,23 +957,53 @@
             btn.querySelector('.btn-spinner').style.display = 'inline-block';
             btn.querySelector('.btn-text').style.opacity = '0.7';
             btn.disabled = true;
+            msg.textContent = '';
 
             try {
-                await db.from('comentarios').insert([{ id_orcamento: clienteAtualParaDetalhes.id_orcamento, texto: texto, tipo: 'Comentário', autor: currentUser.nome }]);
+                // Inserindo o tratamento de erro na requisição com o Supabase
+                const { error } = await db.from('comentarios').insert([{ 
+                    id_orcamento: clienteAtualParaDetalhes.id_orcamento, 
+                    texto: texto, 
+                    tipo: 'Comentário', 
+                    autor: currentUser.nome 
+                }]);
+                
+                // Forçando o javascript a interromper caso o DB responda com algum erro de sintaxe/RLS
+                if (error) throw new Error(error.message);
                 
                 document.getElementById('novoComentario').value = ''; 
-                msg.textContent = 'Salvo!'; msg.style.color = 'var(--brand-blue)'; 
-                setTimeout(() => { msg.textContent = ''; }, 2000);
-                abrirDetalhesCliente(clienteAtualParaDetalhes.id_orcamento); 
+                
+                // Usando await garante que a UI não trave o thread antes de concluirmos o status
+                await abrirDetalhesCliente(clienteAtualParaDetalhes.id_orcamento); 
+                
+                // Após o abrirDetalhesCliente renderizar o HTML, os elementos perdem a ref. Buscamos de novo.
+                const finalMsg = document.getElementById('comentarioMsg');
+                if (finalMsg) {
+                    finalMsg.textContent = 'Salvo com sucesso!'; 
+                    finalMsg.style.color = 'var(--brand-blue)'; 
+                    setTimeout(() => { 
+                        const m = document.getElementById('comentarioMsg'); 
+                        if(m) m.textContent = ''; 
+                    }, 2500);
+                }
             } catch (e) {
                 console.error(e);
-                msg.textContent = 'Erro ao salvar.'; msg.style.color = '#ef4444';
-            } finally {
+                // Como falhou, a tela não re-renderizou, logo o msg original continua na DOM
+                msg.textContent = 'Erro ao salvar: ' + e.message; 
+                msg.style.color = '#ef4444';
+                
                 btn.querySelector('.btn-spinner').style.display = 'none';
                 btn.querySelector('.btn-text').style.opacity = '1';
                 btn.disabled = false;
-            }
+            } 
         }
+
+        function fecharModalUsuarioAdmin() { const el = document.getElementById('modalUsuarioAdmin'); if (el) el.classList.remove('open'); }
+        function fecharModalExcluirUsuario() { const el = document.getElementById('modalExcluirUsuarioAdmin'); if (el) el.classList.remove('open'); }
+        
+        // Placeholder para não quebrar os onclick caso clique em "Salvar Usuário" sem backend pronto.
+        function salvarUsuarioAdmin() { alert("Função em desenvolvimento"); }
+        function confirmarExclusaoUsuario() { alert("Função em desenvolvimento"); }
 
         function logout() {
             currentUser = null; allOrcamentos = []; todosVendedores = []; todosUsuarios = []; selectedVendedor = 'todos'; historicoFaturamento = [];
