@@ -823,9 +823,14 @@
             if (!valid) return;
             
             salvandoOrcamento = true; const btn = document.getElementById('btnSalvarOrcamento'); btn.classList.add('saving'); btn.disabled = true; btn.querySelector('.btn-text').textContent = 'Salvando...'; document.getElementById('modalMsg').textContent = '';
+            
             try { 
-                const { data: cliente } = await db.from('clientes').insert([{ nome_cliente: nome, whatsapp: whats }]).select().single(); 
-                const { data: orc } = await db.from('orcamentos').insert([{ 
+                // Inserindo cliente e pegando eventuais erros
+                const { data: cliente, error: erroCliente } = await db.from('clientes').insert([{ nome_cliente: nome, whatsapp: whats }]).select().single(); 
+                if (erroCliente) throw new Error("Erro no Cliente: " + erroCliente.message);
+
+                // Inserindo orçamento e pegando eventuais erros
+                const { data: orc, error: erroOrc } = await db.from('orcamentos').insert([{ 
                     id_cliente: cliente.id_cliente, 
                     id_usuario: currentUser.id_usuario, 
                     modelo_colchao: modelo, 
@@ -836,9 +841,15 @@
                     data_contato: dataContato,
                     hora_contato: horaContato
                 }]).select().single(); 
+                if (erroOrc) throw new Error("Erro no Orçamento: " + erroOrc.message);
                 
                 closeModal(); carregarDados(); 
-            } catch (error) { console.error(error); document.getElementById('modalMsg').textContent = 'Erro ao salvar. Verifique se você rodou o script SQL.'; btn.classList.remove('saving'); btn.disabled = false; btn.querySelector('.btn-text').textContent = 'Salvar Orçamento'; salvandoOrcamento = false; }
+            } catch (error) { 
+                console.error(error); 
+                // Mostra o erro exato retornado pelo Supabase na tela
+                document.getElementById('modalMsg').innerHTML = `<span style="color: #ef4444; font-size: 13px; font-weight: 600;">${error.message}</span>`; 
+                btn.classList.remove('saving'); btn.disabled = false; btn.querySelector('.btn-text').textContent = 'Salvar Orçamento'; salvandoOrcamento = false; 
+            }
         }
 
         function abrirMotivoPerda(id) { idOrcamentoParaPerder = id; document.getElementById('modalMotivoPerda').classList.add('open'); document.getElementById('motivoPerda').value = ''; }
