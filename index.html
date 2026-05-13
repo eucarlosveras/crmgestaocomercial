@@ -4,10 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CV CRM · Gestão Comercial</title>
-    <!--
-    ⚠️ ATENÇÃO: COMO A AUTENTICAÇÃO FOI REMOVIDA
-    1. Você precisa DESATIVAR O RLS de todas as tabelas (orcamentos, clientes, usuarios, etc) no Supabase.
-    -->
+    <!-- ⚠️ ATENÇÃO: RLS DEVE ESTAR DESATIVADO EM TODAS AS TABELAS NO SUPABASE -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -17,7 +14,7 @@
             --brand-blue: #3b82f6; --brand-blue-dark: #2563eb; --brand-blue-glow: rgba(59, 130, 246, 0.4);
             --accent-green: #10b981; --accent-green-dark: #059669; --accent-purple: #8b5cf6;
             --bg-body: #f5f6f8; --card-bg: #ffffff; --text-primary: #0f172a; --text-secondary: #475569; --text-muted: #64748b;
-            --border-light: #e9eef2; --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.04); --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.06); --shadow-lg: 0 20px 48px rgba(0, 0, 0, 0.15);
+            --border-light: #e9eef2; --shadow-sm: 0 2px 8px rgba(0,0,0,0.04); --shadow-md: 0 4px 16px rgba(0,0,0,0.06); --shadow-lg: 0 20px 48px rgba(0,0,0,0.15);
             --radius-sm: 10px; --radius-md: 14px; --radius-lg: 24px; --transition: 0.2s ease;
             --font-xs: 0.75rem; --font-sm: 0.8125rem; --font-base: 0.875rem; --font-md: 1rem; --font-lg: 1.125rem; --font-xl: 1.25rem;
             --chart-blue: #3b82f6; --chart-green: #10b981; --tooltip-bg: #1e293b; --tooltip-text: #f1f5f9; --tooltip-body: #cbd5e1;
@@ -26,10 +23,9 @@
         body.dark {
             --sidebar-bg: #0f172a; --sidebar-active: #1e293b; --sidebar-text: #cbd5e1; --sidebar-text-muted: #64748b;
             --bg-body: #0a0f18; --card-bg: #1e293b; --text-primary: #f1f5f9; --text-secondary: #94a3b8; --text-muted: #64748b;
-            --border-light: #334155; --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3); --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.4); --shadow-lg: 0 20px 48px rgba(0, 0, 0, 0.5);
+            --border-light: #334155; --shadow-sm: 0 2px 8px rgba(0,0,0,0.3); --shadow-md: 0 4px 16px rgba(0,0,0,0.4); --shadow-lg: 0 20px 48px rgba(0,0,0,0.5);
             --tooltip-bg: #0f172a; --tooltip-text: #f1f5f9; --tooltip-body: #94a3b8; --danger-light-bg: #3b1a1a; --danger-border: #7f1d1d; --danger-text: #fca5a5;
         }
-        
         .status-tag { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: var(--font-xs); font-weight: 600; text-align: center; }
         .status-tag.contato-inicial { background: #e0f2fe; color: #0369a1; } .status-tag.negociacao-valores { background: #fef08a; color: #854d0e; } .status-tag.aguardando-decisao { background: #ffedd5; color: #c2410c; }
         .status-tag.vendido, .status-tag.fechado { background: #d1fae5; color: #065f46; } .status-tag.perdido, .status-tag.declinado { background: #fee2e2; color: #991b1b; }
@@ -38,26 +34,26 @@
         body.dark .status-tag.vendido, body.dark .status-tag.fechado { background: #064e3b; color: #6ee7b7; } body.dark .status-tag.perdido, body.dark .status-tag.declinado { background: #7f1d1d; color: #fca5a5; }
         body.dark .status-tag.pos-venda { background: #2e1065; color: #c4b5fd; } body.dark .status-tag.em-atendimento { background: #1e3a5f; color: #93c5fd; }
         body.dark table thead th { background: #1e293b; color: #94a3b8; } body.dark table tbody td { border-color: #1e293b; } body.dark input, body.dark textarea, body.dark select { background: #0f172a; border-color: #334155; color: #f1f5f9; }
-        
+
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Inter', sans-serif; background: var(--bg-body); color: var(--text-primary); display: flex; min-height: 100vh; line-height: 1.5; transition: background 0.3s, color 0.3s; font-size: var(--font-base); }
         textarea { resize: none; }
         #globalLoader { position: fixed; top: 0; left: 0; width: 100%; height: 3px; background: transparent; z-index: 9999; pointer-events: none; }
         #globalLoader .loader-fill { height: 100%; width: 0; background: var(--brand-blue); transition: width 0.4s ease; } #globalLoader.loading .loader-fill { width: 70%; transition: width 2s ease; }
-        
+
         .login-overlay { position: fixed; inset: 0; background: radial-gradient(circle at center, #e2e8f0 0%, #cbd5e1 100%); display: flex; align-items: center; justify-content: center; z-index: 9999; transition: opacity 0.4s ease, visibility 0.4s ease; }
         body.dark .login-overlay { background: radial-gradient(circle at center, #1e293b 0%, #0a0f18 100%); } .login-overlay.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
-        .login-card { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(12px); border-radius: var(--radius-lg); padding: 56px 48px; box-shadow: 0 16px 48px rgba(0, 0, 0, 0.08); text-align: center; width: 100%; max-width: 440px; border: 1px solid rgba(255, 255, 255, 0.4); animation: fadeInUp 0.6s cubic-bezier(0.22, 0.61, 0.36, 1); }
-        body.dark .login-card { background: rgba(30, 41, 59, 0.85); border: 1px solid rgba(255, 255, 255, 0.05); box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4); }
+        .login-card { background: rgba(255,255,255,0.95); backdrop-filter: blur(12px); border-radius: var(--radius-lg); padding: 56px 48px; box-shadow: 0 16px 48px rgba(0,0,0,0.08); text-align: center; width: 100%; max-width: 440px; border: 1px solid rgba(255,255,255,0.4); animation: fadeInUp 0.6s cubic-bezier(0.22, 0.61, 0.36, 1); }
+        body.dark .login-card { background: rgba(30,41,59,0.85); border: 1px solid rgba(255,255,255,0.05); box-shadow: 0 20px 60px rgba(0,0,0,0.4); }
         @keyframes fadeInUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
         .login-card .login-icon { width: 72px; height: 72px; border-radius: 50%; background: linear-gradient(135deg, var(--brand-blue), #1d4ed8); display: flex; align-items: center; justify-content: center; margin: 0 auto 24px; font-size: 28px; font-weight: 900; letter-spacing: -1px; color: #fff; box-shadow: 0 12px 32px var(--brand-blue-glow); }
         .login-card h2 { font-size: 1.75rem; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 8px; color: var(--text-primary); }
         .login-card .subtitle { font-size: var(--font-base); color: var(--text-secondary); margin-bottom: 32px; font-weight: 500; line-height: 1.4; }
-        
+
         .login-form { display: flex; flex-direction: column; gap: 8px; margin-bottom: 24px; text-align: left; }
         .login-form select { width: 100%; padding: 14px 16px; border-radius: 12px; border: 1.5px solid var(--border-light); background: var(--card-bg); font-family: 'Inter', sans-serif; font-size: var(--font-base); color: var(--text-primary); transition: border 0.2s; cursor: pointer; }
         .login-form select:focus { border-color: var(--brand-blue); outline: none; box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
-        
+
         .segment-control { display: flex; background: #e2e8f0; border-radius: 12px; padding: 4px; position: relative; margin-bottom: 8px; }
         body.dark .segment-control { background: #0f172a; border: 1px solid #334155; }
         .segment-btn { flex: 1; padding: 10px 4px; text-align: center; font-size: 13px; font-weight: 600; color: var(--text-secondary); cursor: pointer; border-radius: 8px; transition: all 0.3s ease; border: none; background: transparent; font-family: 'Inter', sans-serif; }
@@ -65,7 +61,7 @@
         body.dark .segment-btn.active { background: #1e293b; color: var(--brand-blue); }
 
         .user-select-wrapper { opacity: 0; visibility: hidden; max-height: 0; transform: translateY(-10px); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); margin-top: 0; }
-        .user-select-wrapper.visible { opacity: 1; visibility: visible; max-height: 100px; transform: translateY(0); margin-top: 8px; margin-bottom: 12px;}
+        .user-select-wrapper.visible { opacity: 1; visibility: visible; max-height: 100px; transform: translateY(0); margin-top: 8px; margin-bottom: 12px; }
 
         .login-btn { width: 100%; padding: 16px 20px; border-radius: 12px; background: var(--brand-blue); color: #fff; border: none; font-weight: 700; cursor: pointer; font-size: var(--font-md); font-family: 'Inter', sans-serif; transition: all var(--transition); display: flex; align-items: center; justify-content: center; gap: 10px; }
         .login-btn:hover { background: var(--brand-blue-dark); box-shadow: 0 8px 24px var(--brand-blue-glow); transform: translateY(-2px); } .login-btn:disabled { opacity: 0.7; cursor: not-allowed; pointer-events: none; transform: none; box-shadow: none; }
@@ -87,11 +83,11 @@
         .btn-logout-sidebar { display: flex; align-items: center; gap: 10px; background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.3); color: #fca5a5; padding: 10px 14px; border-radius: var(--radius-sm); cursor: pointer; font-size: var(--font-sm); width: 100%; text-align: left; font-family: 'Inter', sans-serif; font-weight: 600; transition: all var(--transition); }
         .btn-logout-sidebar:hover { background: rgba(239,68,68,0.25); color: #fff; border-color: rgba(239,68,68,0.6); } .btn-logout-sidebar svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2; }
         .theme-toggle { background: transparent; border: 1px solid rgba(255,255,255,0.2); color: var(--sidebar-text-muted); padding: 8px 12px; border-radius: var(--radius-sm); cursor: pointer; font-size: var(--font-xs); width: 100%; text-align: center; font-family: 'Inter', sans-serif; }
-        
+
         .main-content { margin-left: 240px; flex: 1; padding: 28px 32px 40px; display: flex; flex-direction: column; gap: 20px; }
         .dashboard-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; } .dashboard-header h1 { font-size: var(--font-xl); font-weight: 700; } .dashboard-header .header-controls { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
         .btn-voltar { display: inline-flex; align-items: center; gap: 8px; background: var(--card-bg); border: 1.5px solid var(--border-light); color: var(--text-primary); padding: 10px 16px; border-radius: var(--radius-sm); cursor: pointer; font-weight: 600; font-size: var(--font-sm); font-family: 'Inter', sans-serif; transition: all var(--transition); } .btn-voltar:hover { background: #f1f5f9; border-color: #cbd5e1; } body.dark .btn-voltar:hover { background: #1e293b; border-color: #475569; }
-        
+
         .header-notification-area { position: relative; }
         .btn-notification { background: var(--card-bg); border: 1.5px solid var(--border-light); border-radius: 50%; width: 40px; height: 40px; cursor: pointer; display: flex; align-items: center; justify-content: center; position: relative; transition: all var(--transition); font-family: 'Inter', sans-serif; }
         .btn-notification:hover { border-color: #cbd5e1; box-shadow: 0 2px 8px rgba(0,0,0,0.06); } .btn-notification svg { width: 18px; height: 18px; stroke: var(--text-secondary); fill: none; stroke-width: 2; }
@@ -105,7 +101,7 @@
         .month-select, .vendedor-select, .day-select { padding: 10px 14px 10px 36px; border-radius: 20px; border: 1.5px solid #e2e8f0; background: var(--card-bg); color: var(--text-primary); font-size: var(--font-sm); font-weight: 500; cursor: pointer; appearance: none; -webkit-appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 32px; font-family: 'Inter', sans-serif; box-shadow: 0 1px 2px rgba(0,0,0,0.02); transition: all 0.2s ease; }
         .month-select:hover, .vendedor-select:hover, .day-select:hover { border-color: #cbd5e1; box-shadow: 0 2px 6px rgba(0,0,0,0.04); } .month-select:focus, .vendedor-select:focus, .day-select:focus { border-color: var(--brand-blue); box-shadow: 0 0 0 3px rgba(59,130,246,0.1); outline: none; }
         .search-input { padding: 10px 14px; border-radius: 20px; border: 1.5px solid #e2e8f0; background: var(--card-bg); color: var(--text-primary); font-size: var(--font-sm); width: 200px; font-family: 'Inter', sans-serif; transition: all 0.2s ease; } .search-input:focus { border-color: var(--brand-blue); box-shadow: 0 0 0 3px rgba(59,130,246,0.1); outline: none; }
-        
+
         .kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; } .kpi-card { background: var(--card-bg); border-radius: var(--radius-md); padding: 24px; box-shadow: var(--shadow-sm); border: 1px solid var(--border-light); display: flex; flex-direction: column; justify-content: center; } .kpi-card.vendido-highlight { border-bottom: 4px solid var(--accent-green); }
         .kpi-label-row { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; } .kpi-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; } .kpi-dot.blue { background: #60a5fa; } .kpi-dot.green { background: #10b981; } .kpi-dot.orange { background: #f59e0b; }
         .kpi-label { font-size: var(--font-sm); font-weight: 500; color: var(--text-secondary); text-transform: none; } .kpi-value { font-size: 2rem; font-weight: 800; line-height: 1.1; color: var(--text-primary); }
@@ -125,20 +121,19 @@
         .ranking-bar-inner span { font-size: 10px; font-weight: 700; color: #fff; white-space: nowrap; } .ranking-valor { width: 90px; text-align: right; font-weight: 700; color: var(--accent-green-dark); flex-shrink: 0; font-size: var(--font-xs); }
         .top5-list { list-style: none; flex: 1; display: flex; flex-direction: column; overflow-y: auto; } .top5-list li { display: flex; align-items: center; gap: 12px; padding: 12px 8px; border-bottom: 1px solid var(--border-light); font-size: var(--font-sm); }
         .top5-rank { width: 26px; height: 26px; border-radius: 50%; background: #f1f5f9; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: var(--font-xs); color: var(--text-secondary); flex-shrink: 0; }
-        
+
         .table-card { background: var(--card-bg); border-radius: var(--radius-md); padding: 20px 24px; box-shadow: var(--shadow-md); border: 1px solid var(--border-light); }
         .table-card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; flex-wrap: wrap; gap: 12px; } .table-card-header h3 { font-size: var(--font-md); font-weight: 700; display: flex; align-items: center; gap: 10px; }
         table { width: 100%; border-collapse: collapse; font-size: var(--font-sm); } table thead th { background: #f8fafc; padding: 12px 14px; font-weight: 700; font-size: var(--font-xs); text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-secondary); border-bottom: 2px solid #e2e8f0; text-align: left; }
-        table tbody td { padding: 12px 14px; border-bottom: 1px solid var(--border-light); vertical-align: middle; } 
-        
-        /* Linhas da tabela clicáveis e Feedback Visual */
+        table tbody td { padding: 12px 14px; border-bottom: 1px solid var(--border-light); vertical-align: middle; }
+
         .table-card tbody tr.clickable-row { cursor: pointer; transition: background 0.2s; }
         .table-card tbody tr.clickable-row:hover { background: var(--brand-blue-glow); }
         body.dark .table-card tbody tr.clickable-row:hover { background: rgba(59, 130, 246, 0.15); }
 
         .client-name { font-weight: 600; color: var(--brand-blue-dark); cursor: pointer; } .client-name:hover { text-decoration: underline; }
         .pagination { display: flex; align-items: center; gap: 8px; margin-top: 16px; justify-content: flex-end; font-size: var(--font-sm); } .pagination button { padding: 6px 12px; border-radius: 6px; border: 1px solid var(--border-light); background: var(--card-bg); color: var(--text-primary); cursor: pointer; font-weight: 500; } .pagination button:disabled { opacity: 0.5; cursor: default; }
-        
+
         .detalhes-page-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
         .info-card { background: var(--card-bg); border-radius: var(--radius-md); padding: 28px; box-shadow: var(--shadow-md); border: 1px solid var(--border-light); display: flex; flex-direction: column; }
         .info-card-title { font-size: var(--font-sm); font-weight: 600; margin-bottom: 20px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); display: flex; align-items: center; gap: 8px; } .info-card-icon { width: 18px; height: 18px; stroke: var(--text-muted); fill: none; }
@@ -150,7 +145,7 @@
         .form-input { width: 100%; padding: 14px 16px; border: 1.5px solid var(--border-light); border-radius: 10px; font-family: 'Inter', sans-serif; font-size: var(--font-sm); color: var(--text-primary); background: var(--bg-body); transition: all 0.2s; box-shadow: inset 0 1px 2px rgba(0,0,0,0.02); } .form-input:focus { border-color: var(--brand-blue); outline: none; box-shadow: 0 0 0 3px rgba(59,130,246,0.1), inset 0 1px 2px rgba(0,0,0,0.02); background: var(--card-bg); }
         body.dark .form-input { background: #0f172a; border-color: #334155; color: #f1f5f9; box-shadow: inset 0 1px 2px rgba(0,0,0,0.2); } body.dark .form-input:focus { background: #1e293b; border-color: var(--brand-blue); }
         .timeline-group-header { font-size: var(--font-xs); font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; padding: 8px 0; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
-        
+
         .comment-item { background: var(--card-bg); border: 1px solid var(--border-light); border-left: 4px solid var(--border-light); padding: 16px; border-radius: 10px; margin-bottom: 12px; position: relative; transition: all 0.2s; box-shadow: var(--shadow-sm); } .comment-item.is-new { border-left-color: var(--new-comment-accent); background: #f0f7ff; } body.dark .comment-item.is-new { background: rgba(59,130,246,0.08); }
         .comment-badge-new { position: absolute; top: -6px; right: 10px; background: var(--new-comment-accent); color: #fff; font-size: 9px; font-weight: 700; padding: 2px 8px; border-radius: 10px; letter-spacing: 0.05em; }
         .comment-item .comment-header { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; } .comment-item .comment-avatar { width: 24px; height: 24px; border-radius: 50%; background: linear-gradient(135deg, var(--brand-blue), #1d4ed8); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; flex-shrink: 0; }
@@ -163,23 +158,23 @@
         .comment-edit-actions { display: flex; gap: 8px; margin-top: 6px; justify-content: flex-end; } .comment-edit-actions button { padding: 6px 14px; border-radius: 6px; font-size: var(--font-xs); font-weight: 600; cursor: pointer; border: none; font-family: 'Inter', sans-serif; }
         .comment-edit-actions .btn-save { background: var(--brand-blue); color: #fff; } .comment-edit-actions .btn-cancel { background: #e2e8f0; color: var(--text-secondary); } body.dark .comment-edit-actions .btn-cancel { background: #334155; color: #cbd5e1; }
         .typing-indicator { font-size: var(--font-xs); color: var(--text-muted); font-style: italic; display: none; margin-top: 8px; } .typing-indicator.visible { display: block; }
-        
+
         .auto-save-indicator { font-size: 11px; color: var(--accent-green); font-weight: 700; opacity: 0; transition: opacity 0.3s; margin-left: 8px; }
         .auto-save-indicator.visible { opacity: 1; }
 
         .btn-primary-action { background: var(--brand-blue); color: #fff; border: none; padding: 12px 22px; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: var(--font-sm); font-family: 'Inter', sans-serif; transition: all var(--transition); display: inline-flex; align-items: center; gap: 8px; } .btn-primary-action:hover { background: var(--brand-blue-dark); box-shadow: 0 4px 12px rgba(59,130,246,0.3); }
         .btn-danger-ghost { background: var(--danger-light-bg); color: var(--danger-text); border: 1.5px solid var(--danger-border); padding: 12px 22px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: var(--font-sm); font-family: 'Inter', sans-serif; transition: all var(--transition); display: inline-flex; align-items: center; gap: 8px; } .btn-danger-ghost:hover { background: var(--danger-border); }
         .btn-salvar-timeline { background: var(--brand-blue); color: #fff; border: none; padding: 12px 28px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: var(--font-sm); font-family: 'Inter', sans-serif; display: inline-flex; align-items: center; justify-content: center; gap: 10px; transition: all var(--transition); } .btn-salvar-timeline:hover { background: var(--brand-blue-dark); } .btn-salvar-timeline svg { width: 16px; height: 16px; }
-        
+
         .fab { position: fixed; bottom: 32px; right: 36px; width: 56px; height: 56px; border-radius: 50%; background: var(--brand-blue); color: #fff; font-size: 28px; border: none; cursor: pointer; box-shadow: 0 8px 24px rgba(59,130,246,0.4); display: flex; align-items: center; justify-content: center; z-index: 200; transition: transform 0.2s, background 0.2s; } .fab:hover { background: var(--brand-blue-dark); transform: scale(1.06); }
         .modal-overlay { position: fixed; inset: 0; background: rgba(15,23,42,0.6); backdrop-filter: blur(6px); z-index: 300; display: flex; align-items: center; justify-content: center; opacity: 0; visibility: hidden; transition: all 0.25s ease; } .modal-overlay.open { opacity: 1; visibility: visible; }
         .modal-card { background: var(--card-bg); border-radius: var(--radius-md); padding: 28px 24px; max-width: 500px; width: 90%; max-height: 85vh; overflow-y: auto; border: 1px solid var(--border-light); box-shadow: 0 20px 48px rgba(0,0,0,0.2); transform: translateY(20px); transition: transform 0.25s ease; } .modal-overlay.open .modal-card { transform: translateY(0); }
         .modal-card h3 { font-size: var(--font-lg); font-weight: 700; margin-bottom: 20px; } .modal-card label { display: block; font-size: var(--font-xs); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 4px; margin-top: 12px; }
         .modal-card input, .modal-card textarea, .modal-card select { width: 100%; padding: 12px 14px; border-radius: 8px; border: 1.5px solid var(--border-light); font-size: var(--font-sm); font-family: 'Inter', sans-serif; color: var(--text-primary); background: #fafbfc; margin-bottom: 4px; } .modal-card input:focus, .modal-card textarea:focus, .modal-card select:focus { border-color: var(--brand-blue); box-shadow: 0 0 0 3px rgba(59,130,246,0.1); outline: none; }
-        .modal-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; } 
+        .modal-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
         .modal-btns { display: flex; gap: 12px; margin-top: 20px; }
-        
-        .produtos-list { border: 1px solid var(--border-light); border-radius: 10px; padding: 12px; background: #f8fafc; margin-bottom: 12px; max-height: none; overflow-y: visible; }
+
+        .produtos-list { border: 1px solid var(--border-light); border-radius: 10px; padding: 12px; background: #f8fafc; margin-bottom: 12px; max-height: 220px; overflow-y: auto; }
         body.dark .produtos-list { background: #0f172a; border-color: #334155; }
         .produto-row { display: grid; grid-template-columns: 1fr 110px 38px; gap: 8px; align-items: start; margin-bottom: 8px; }
         .produto-row:last-child { margin-bottom: 0; }
@@ -193,36 +188,31 @@
         .novo-orcamento-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start;}
         .novo-orcamento-section { background: var(--card-bg); border-radius: var(--radius-md); padding: 28px; box-shadow: var(--shadow-md); border: 1px solid var(--border-light); display: flex; flex-direction: column; }
         .novo-orcamento-title { font-size: var(--font-sm); font-weight: 600; margin-bottom: 20px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--border-light); padding-bottom: 12px;}
-        
+
         @media (max-width: 1100px) { .sidebar { width: 210px; min-width: 210px; } .main-content { margin-left: 210px; } .kpi-row { grid-template-columns: 1fr 1fr; } .charts-row, .charts-row-duplo, .charts-row-triplo, .action-grid, .health-grid { grid-template-columns: 1fr; } .detalhes-page-grid, .novo-orcamento-grid { grid-template-columns: 1fr; } .bar-chart-wrapper { min-height: 180px; max-height: 220px; } }
     </style>
 </head>
 <body>
     <div id="globalLoader"><div class="loader-fill"></div></div>
 
-    <!-- TELA DE LOGIN SEM AUTENTICAÇÃO REAL -->
+    <!-- TELA DE LOGIN -->
     <div class="login-overlay" id="loginOverlay">
         <div class="login-card">
             <div class="login-icon" aria-hidden="true">CV</div>
             <h2>CV CRM</h2>
             <p class="subtitle">Acesso ao Sistema</p>
-            
             <div class="login-form">
-                <!-- Passo 1: Botões de Perfil -->
                 <div class="segment-control" id="perfilSegment">
                     <button type="button" class="segment-btn" onclick="selecionarPerfil('Vendedor', this)">Vendedor</button>
                     <button type="button" class="segment-btn" onclick="selecionarPerfil('Gerente', this)">Gerente</button>
                     <button type="button" class="segment-btn" onclick="selecionarPerfil('Administrador', this)">Admin</button>
                 </div>
-                
-                <!-- Passo 2: Lista de Nomes Limpos (Com transição suave) -->
                 <div class="user-select-wrapper" id="usuarioSelectWrapper">
                     <select id="loginUsuarioSelect">
                         <option value="">Selecione seu nome...</option>
                     </select>
                 </div>
             </div>
-
             <button class="login-btn" id="btnLogin" onclick="handleLogin()">
                 <span class="spinner"></span>
                 <span class="btn-text">Entrar no Sistema</span>
@@ -252,7 +242,7 @@
     <div class="modal-overlay" id="modalEditarMeta" onclick="if(event.target === this) fecharModalMeta()"><div class="modal-card" style="max-width:420px;"><h3>Editar Meta</h3><label for="inputMetaValor">Nova meta (R$)</label><input type="text" id="inputMetaValor" placeholder="R$ 50.000,00" inputmode="decimal"><div class="field-error" id="errMeta"></div><div class="modal-btns"><button class="btn-cancelar-modal" onclick="fecharModalMeta()">Cancelar</button><button class="btn-salvar-modal" id="btnSalvarMeta" onclick="salvarNovaMeta()"><span class="btn-spinner"></span><span class="btn-text">Salvar</span></button></div></div></div>
     <div class="modal-overlay" id="modalExcluirComentario" onclick="if(event.target === this) fecharModalExcluir()"><div class="modal-card" style="max-width:420px;"><h3>Excluir comentário</h3><p style="margin-bottom:16px;">Tem certeza que deseja excluir este comentário?</p><div class="modal-btns"><button class="btn-cancelar-modal" onclick="fecharModalExcluir()">Cancelar</button><button class="btn-salvar-modal" id="btnConfirmarExclusao" style="background:#ef4444;" onclick="confirmarExclusaoComentario()"><span class="btn-spinner"></span><span class="btn-text">Excluir</span></button></div></div></div>
 
-    <!-- MODAL USUÁRIO ADMIN ATUALIZADO (SEM SENHA E COM E-MAIL OPCIONAL) -->
+    <!-- MODAL USUÁRIO ADMIN -->
     <div class="modal-overlay" id="modalUsuarioAdmin" onclick="if(event.target === this) fecharModalUsuarioAdmin()">
         <div class="modal-card" style="max-width:420px;">
             <h3 id="modalUsuarioTitle">Novo Usuário</h3>
@@ -309,8 +299,7 @@
         let historicoFaturamento = [];
         let comentarioParaExcluir = null;
         let idUsuarioEmEdicao = null;
-        
-        // Variáveis globais para a tela de login
+
         let usuariosParaLogin = [];
         let perfilSelecionadoLogin = null;
 
@@ -319,47 +308,37 @@
 
         async function checkSession() {
             document.getElementById('loginOverlay').classList.remove('hidden');
-            
             try {
-                // Ao abrir a tela, o sistema vai no banco em silêncio e baixa TODOS os usuários ativos
                 const { data, error } = await db.from('usuarios').select('*').eq('status', 'Ativo').order('nome');
                 if (error) throw error;
-                
-                usuariosParaLogin = data || []; // Guarda na memória para não gastar requisições ao banco
+                usuariosParaLogin = data || [];
             } catch (e) {
                 console.error("Erro ao carregar usuários:", e);
                 document.getElementById('loginMsg').innerHTML = 'Erro de conexão com o banco de dados.';
             }
         }
 
-        // Função disparada ao clicar no Segment Control (Vendedor, Gerente, Admin)
         function selecionarPerfil(perfil, btnElement) {
             perfilSelecionadoLogin = perfil;
-            
-            // Troca a cor dos botões (Efeito de aba ativa)
             document.querySelectorAll('.segment-btn').forEach(b => b.classList.remove('active'));
             btnElement.classList.add('active');
 
             const wrapper = document.getElementById('usuarioSelectWrapper');
             const select = document.getElementById('loginUsuarioSelect');
-            
             select.innerHTML = '<option value="">Selecione seu nome...</option>';
 
-            // Filtra os usuários na memória (Admin ou Administrador tratam a mesma regra)
             const filtrados = usuariosParaLogin.filter(u => u.perfil === perfil || (perfil === 'Administrador' && u.perfil === 'Admin'));
 
             if (filtrados.length === 0) {
                 select.innerHTML = `<option value="">Nenhum ${perfil} cadastrado</option>`;
             } else {
-                // Preenche a lista com os nomes "limpos", sem expor cargo
                 filtrados.forEach(u => {
                     select.innerHTML += `<option value="${u.id_usuario}">${escapeHtml(u.nome)}</option>`;
                 });
             }
 
-            // Revela a lista com animação suave
             wrapper.classList.add('visible');
-            document.getElementById('loginMsg').innerHTML = ''; // Limpa alertas anteriores
+            document.getElementById('loginMsg').innerHTML = '';
         }
 
         async function handleLogin() {
@@ -379,19 +358,18 @@
             btn.classList.add('loading'); btn.disabled = true; msg.innerHTML = '';
 
             try {
-                // Recupera o usuário exato da memória sem precisar ir ao banco de novo
                 const userFound = usuariosParaLogin.find(u => u.id_usuario === idSelecionado);
                 if (!userFound) throw new Error("Usuário inválido.");
 
-                currentUser = userFound; // Define o usuário atual do sistema
-                document.getElementById('loginOverlay').classList.add('hidden'); 
-                initAppAfterLogin(); // Inicia o sistema
+                currentUser = userFound;
+                document.getElementById('loginOverlay').classList.add('hidden');
+                initAppAfterLogin();
 
-            } catch (err) { 
-                console.error("Erro interno no login:", err); 
-                msg.innerHTML = `<span style="color: #ef4444; font-size: 13px; font-weight: 600;">Erro ao entrar no sistema.</span>`; 
+            } catch (err) {
+                console.error("Erro interno no login:", err);
+                msg.innerHTML = `<span style="color: #ef4444; font-size: 13px; font-weight: 600;">Erro ao entrar no sistema.</span>`;
             } finally {
-                btn.classList.remove('loading'); btn.disabled = false; 
+                btn.classList.remove('loading'); btn.disabled = false;
             }
         }
 
@@ -411,7 +389,6 @@
             document.getElementById('textNavInicio').textContent = (isAdministrador || isGerente) ? 'Dashboard Vendas' : 'Início';
             document.getElementById('fabButton').style.display = (!isAdministrador && !isGerente) ? 'flex' : 'none';
 
-            // Carrega a lista de usuários para os filtros
             try {
                 const { data: all } = await db.from('usuarios').select('*').order('nome');
                 todosUsuarios = all || [];
@@ -439,14 +416,13 @@
         }
 
         async function logout() {
-            // Como não tem mais sessão, apenas recarrega a página
             currentUser = null;
-            location.reload(); 
+            location.reload();
         }
 
         async function salvarUsuarioAdmin() {
             const nome = document.getElementById('adminModNome').value.trim();
-            const email = document.getElementById('adminModEmail').value.trim(); // Agora opcional
+            const email = document.getElementById('adminModEmail').value.trim();
             const perfil = document.getElementById('adminModPerfil').value;
             const status = document.getElementById('adminModStatus').value;
             const err = document.getElementById('errAdminUsuario');
@@ -458,7 +434,6 @@
 
             try {
                 if (idUsuarioEmEdicao) {
-                    // Editando
                     const { error } = await db.from('usuarios').update({
                         nome: nome,
                         email: email,
@@ -467,7 +442,6 @@
                     }).eq('id_usuario', idUsuarioEmEdicao);
                     if (error) throw new Error(error.message);
                 } else {
-                    // Inserindo novo direto na tabela
                     const { error } = await db.from('usuarios').insert([{
                         nome: nome,
                         email: email,
@@ -478,7 +452,6 @@
                     if (error) throw new Error(error.message);
                 }
 
-                // Atualiza listas locais
                 const { data: usuarios } = await db.from('usuarios').select('*').order('nome');
                 todosUsuarios = usuarios || [];
                 todosVendedores = todosUsuarios.filter(u => u.perfil === 'Vendedor');
@@ -528,18 +501,17 @@
             showLoader();
             try {
                 let query = db.from('orcamentos').select('*, clientes(nome_cliente, whatsapp), usuarios(nome)');
-                
-                // Filtra apenas se for vendedor e o ID do vendedor atual não for o mock genérico
+
                 if (currentUser.perfil === 'Vendedor' && !currentUser.id_usuario.includes('mock')) {
                     query = query.eq('id_usuario', currentUser.id_usuario);
                 }
                 else if (selectedVendedor !== 'todos') {
                     query = query.eq('id_usuario', selectedVendedor);
                 }
-                
+
                 if (currentDay) { const start = new Date(currentYear, currentMonth - 1, currentDay).toISOString(); const end = new Date(currentYear, currentMonth - 1, currentDay, 23, 59, 59).toISOString(); query = query.gte('data_criacao', start).lte('data_criacao', end); }
                 else if (currentMonth && currentYear) { const startDate = new Date(currentYear, currentMonth - 1, 1).toISOString(); const endDate = new Date(currentYear, currentMonth, 0, 23, 59, 59).toISOString(); query = query.gte('data_criacao', startDate).lte('data_criacao', endDate); }
-                
+
                 const { data, error } = await query.order('data_criacao', { ascending: false });
                 if (error) {
                     console.error("Erro no carregamento", error);
@@ -554,7 +526,7 @@
 
             atualizarBadge();
             const notificacoes = buildNotifications(); const alertCount = notificacoes.filter(n => n.id !== null).length; renderNotificationBadge(alertCount);
-            
+
             if (currentView === 'inicio') renderInicio();
             else if (currentView === 'admin_inicio') renderAdminInicio(document.getElementById('mainContent'));
             else if (currentView === 'admin_usuarios') renderAdminUsuarios(document.getElementById('mainContent'));
@@ -563,7 +535,7 @@
             else if (currentView === 'metas') renderMetas();
             else if (currentView === 'detalhes_cliente') renderDetalhesClientePage();
             else if (currentView === 'novo_orcamento') renderNovoOrcamentoPage();
-            
+
             hideLoader();
         }
 
@@ -575,6 +547,9 @@
                         .map(p => ({ nome: p.produto || '' }))
                         .filter(p => p.nome.trim() !== '')
                         .sort((a, b) => a.nome.localeCompare(b.nome));
+                } else {
+                    console.warn("Tabela 'produtos' pode estar vazia ou inacessível. Verifique o banco de dados.");
+                    todosProdutos = [];
                 }
             } catch (e) { console.error("Falha ao carregar produtos:", e); }
         }
@@ -604,7 +579,7 @@
             document.querySelectorAll('.nav-item').forEach(el => { el.classList.remove('active'); el.removeAttribute('aria-current'); });
             const target = document.querySelector(`[data-nav="${view}"]`); if (target) { target.classList.add('active'); target.setAttribute('aria-current', 'page'); }
             currentPage = 1; searchTerm = '';
-            
+
             if (view === 'admin_inicio') renderAdminInicio(document.getElementById('mainContent'));
             else if (view === 'admin_usuarios') renderAdminUsuarios(document.getElementById('mainContent'));
             else if (view === 'inicio') renderInicio();
@@ -615,13 +590,13 @@
             else if (currentView === 'novo_orcamento') renderNovoOrcamentoPage();
         }
 
-        function getMetaVendedor(idVendedor) { 
+        function getMetaVendedor(idVendedor) {
             const user = (todosUsuarios && todosUsuarios.length > 0 ? todosUsuarios : todosVendedores).find(u => u.id_usuario === idVendedor);
-            return user && user.meta_mensal ? parseFloat(user.meta_mensal) : META_PADRAO; 
+            return user && user.meta_mensal ? parseFloat(user.meta_mensal) : META_PADRAO;
         }
-        function calcularMetaTotal() { 
-            if (currentUser.perfil === 'Vendedor') return getMetaVendedor(currentUser.id_usuario); 
-            return todosVendedores.reduce((s, v) => s + getMetaVendedor(v.id_usuario), 0); 
+        function calcularMetaTotal() {
+            if (currentUser.perfil === 'Vendedor') return getMetaVendedor(currentUser.id_usuario);
+            return todosVendedores.reduce((s, v) => s + getMetaVendedor(v.id_usuario), 0);
         }
         function timeAgo(dateString) { const now = new Date(); const date = new Date(dateString); const diff = Math.floor((now - date) / (1000 * 60 * 60 * 24)); if (diff === 0) return 'Hoje'; if (diff === 1) return 'Ontem'; return 'há ' + diff + ' dias'; }
 
@@ -641,11 +616,11 @@
 
         function renderComentariosHtml(comentarios, clienteId) {
             if (!comentarios || comentarios.length === 0) return '<p style="color:var(--text-muted);">Nenhum comentário registrado.</p>';
-            const grupos = {}; 
-            comentarios.forEach((c) => { 
-                const label = getDateLabel(c.data_criacao); 
-                if (!grupos[label]) grupos[label] = []; 
-                grupos[label].push(c); 
+            const grupos = {};
+            comentarios.forEach((c) => {
+                const label = getDateLabel(c.data_criacao);
+                if (!grupos[label]) grupos[label] = [];
+                grupos[label].push(c);
             });
             let html = '';
             Object.keys(grupos).forEach(label => {
@@ -653,51 +628,51 @@
                 grupos[label].forEach(c => {
                     const isNew = isCommentNew(c.data_criacao, clienteId); const tipoLabel = c.tipo === 'Sistema' ? 'Sistema' : c.tipo === 'Perda' ? 'Perda' : 'Comentário'; const autorNome = c.autor || 'Sistema'; const autorInicial = autorNome.charAt(0).toUpperCase(); const podeEditar = (c.tipo === 'Comentário' || c.tipo === 'Perda') && c.autor === currentUser?.nome;
                     const horaMinuto = new Date(c.data_criacao).toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'});
-                    if (c._editando) { html += `<div class="comment-item ${isNew ? 'is-new' : ''}">${isNew ? '<span class="comment-badge-new">Novo</span>' : ''}<div class="comment-header"><div class="comment-avatar">${autorInicial}</div><span class="comment-author">${escapeHtml(autorNome)}</span><span class="comment-tipo">${tipoLabel}</span></div><input type="text" class="comment-edit-input" id="editInput_${c.id_comentario}" value="${escapeHtml(c.texto)}" /><div class="comment-edit-actions"><button class="btn-cancel" onclick="cancelarEdicao()">Cancelar</button><button class="btn-save" onclick="salvarEdicao(${c.id_comentario})"><span class="btn-spinner" style="width:12px;height:12px;"></span> Salvar</button></div></div>`; } 
+                    if (c._editando) { html += `<div class="comment-item ${isNew ? 'is-new' : ''}">${isNew ? '<span class="comment-badge-new">Novo</span>' : ''}<div class="comment-header"><div class="comment-avatar">${autorInicial}</div><span class="comment-author">${escapeHtml(autorNome)}</span><span class="comment-tipo">${tipoLabel}</span></div><input type="text" class="comment-edit-input" id="editInput_${c.id_comentario}" value="${escapeHtml(c.texto)}" /><div class="comment-edit-actions"><button class="btn-cancel" onclick="cancelarEdicao()">Cancelar</button><button class="btn-save" onclick="salvarEdicao(${c.id_comentario})"><span class="btn-spinner" style="width:12px;height:12px;"></span> Salvar</button></div></div>`; }
                     else { html += `<div class="comment-item ${isNew ? 'is-new' : ''}">${isNew ? '<span class="comment-badge-new">Novo</span>' : ''}${podeEditar ? `<div class="comment-actions"><button class="btn-edit" title="Editar" onclick="editarComentario(${c.id_comentario})"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button><button class="btn-delete" title="Excluir" onclick="abrirModalExcluirComentario(${c.id_comentario})"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 01-2-2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg></button></div>` : ''}<div class="comment-header"><div class="comment-avatar">${autorInicial}</div><span class="comment-author">${escapeHtml(autorNome)}</span><span class="comment-tipo">${tipoLabel}</span></div><div class="comment-body">${escapeHtml(c.texto)}</div><div class="comment-time">${horaMinuto}</div></div>`; }
                 });
             });
             return html;
         }
 
-        function editarComentario(id_comentario) { 
-            const com = clienteAtualParaDetalhes.comentarios; const index = com.findIndex(c => c.id_comentario === id_comentario); if (index < 0) return; 
-            com.forEach(c => delete c._editando); com[index]._editando = true; renderDetalhesClientePage(); 
+        function editarComentario(id_comentario) {
+            const com = clienteAtualParaDetalhes.comentarios; const index = com.findIndex(c => c.id_comentario === id_comentario); if (index < 0) return;
+            com.forEach(c => delete c._editando); com[index]._editando = true; renderDetalhesClientePage();
         }
-        function cancelarEdicao() { 
-            clienteAtualParaDetalhes.comentarios.forEach(c => delete c._editando); renderDetalhesClientePage(); 
+        function cancelarEdicao() {
+            clienteAtualParaDetalhes.comentarios.forEach(c => delete c._editando); renderDetalhesClientePage();
         }
-        async function salvarEdicao(id_comentario) { 
+        async function salvarEdicao(id_comentario) {
             const input = document.getElementById('editInput_' + id_comentario); if (!input) return;
             const novoTexto = input.value.trim();
             const btn = event.currentTarget; btn.classList.add('saving'); btn.disabled = true;
             try {
                 const { error } = await db.from('comentarios').update({ texto: novoTexto }).eq('id_comentario', id_comentario);
                 if (error) throw new Error(error.message);
-                
+
                 const index = clienteAtualParaDetalhes.comentarios.findIndex(c => c.id_comentario === id_comentario);
                 if(index > -1) { clienteAtualParaDetalhes.comentarios[index].texto = novoTexto; delete clienteAtualParaDetalhes.comentarios[index]._editando; }
                 renderDetalhesClientePage();
-            } catch(e) { 
-                console.error(e); 
+            } catch(e) {
+                console.error(e);
                 btn.classList.remove('saving'); btn.disabled = false;
             }
         }
         function abrirModalExcluirComentario(id_comentario) { comentarioParaExcluir = id_comentario; document.getElementById('modalExcluirComentario').classList.add('open'); }
         function fecharModalExcluir() { document.getElementById('modalExcluirComentario').classList.remove('open'); comentarioParaExcluir = null; const btn = document.getElementById('btnConfirmarExclusao'); btn.classList.remove('saving'); btn.disabled = false;}
-        
-        async function confirmarExclusaoComentario() { 
-            if (!comentarioParaExcluir) return; 
+
+        async function confirmarExclusaoComentario() {
+            if (!comentarioParaExcluir) return;
             const btn = document.getElementById('btnConfirmarExclusao'); btn.classList.add('saving'); btn.disabled = true;
             try {
                 const { error } = await db.from('comentarios').delete().eq('id_comentario', comentarioParaExcluir);
                 if (error) throw new Error(error.message);
-                
+
                 clienteAtualParaDetalhes.comentarios = clienteAtualParaDetalhes.comentarios.filter(c => c.id_comentario !== comentarioParaExcluir);
                 fecharModalExcluir(); renderDetalhesClientePage();
-            } catch(e) { 
-                console.error(e); 
-                btn.classList.remove('saving'); btn.disabled = false; 
+            } catch(e) {
+                console.error(e);
+                btn.classList.remove('saving'); btn.disabled = false;
             }
         }
 
@@ -706,11 +681,11 @@
         async function salvarComentario() {
             const texto = document.getElementById('novoComentario').value.trim();
             const msg = document.getElementById('comentarioMsg');
-            
-            if (!texto) { 
-                msg.textContent = 'Digite um comentário.'; 
-                msg.style.color = '#ef4444'; 
-                return; 
+
+            if (!texto) {
+                msg.textContent = 'Digite um comentário.';
+                msg.style.color = '#ef4444';
+                return;
             }
 
             const btn = document.getElementById('btnSalvarTimeline');
@@ -731,7 +706,7 @@
 
                 document.getElementById('novoComentario').value = '';
                 atualizarIndicadorDigitacao();
-                
+
                 await abrirDetalhesCliente(clienteAtualParaDetalhes.id_orcamento);
             } catch (e) {
                 console.error(e);
@@ -743,24 +718,24 @@
                 btn.disabled = false;
             }
         }
-        
+
         async function salvarObservacaoFixa(id) {
             const texto = document.getElementById('obsFixaCliente').value.trim();
             try {
                 const { error } = await db.from('orcamentos').update({ observacoes: texto }).eq('id_orcamento', id);
                 if(error) throw error;
-                
+
                 const loader = document.getElementById('obsSalvaLoader');
                 if(loader) {
                     loader.classList.add('visible');
                     setTimeout(() => loader.classList.remove('visible'), 2500);
                 }
-                
+
                 if (clienteAtualParaDetalhes && clienteAtualParaDetalhes.id_orcamento === id) {
                     clienteAtualParaDetalhes.observacoes = texto;
                 }
-            } catch(e) { 
-                console.error(e); 
+            } catch(e) {
+                console.error(e);
                 alert("Erro ao salvar observação.");
             }
         }
@@ -768,7 +743,16 @@
         function buildVendedorOptions() { let opts = '<option value="todos" ' + (selectedVendedor === 'todos' ? 'selected' : '') + '>Todos os vendedores</option>'; todosVendedores.forEach(v => { opts += `<option value="${v.id_usuario}" ${selectedVendedor == v.id_usuario ? 'selected' : ''}>${v.nome}</option>`; }); return opts; }
         function buildMonthOptions() { let opts = ''; for (let i = 0; i < 12; i++) { const d = new Date(currentYear, i, 1); const val = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`; const sel = (d.getMonth() + 1 === currentMonth && d.getFullYear() === currentYear && !currentDay) ? 'selected' : ''; opts += `<option value="${val}" ${sel}>${d.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}</option>`; } return opts; }
         function buildDayOptions() { const daysInMonth = new Date(currentYear, currentMonth, 0).getDate(); let opts = `<option value="todos" ${!currentDay ? 'selected' : ''}>Todos os dias</option>`; for (let d = 1; d <= daysInMonth; d++) { const sel = currentDay === d ? 'selected' : ''; opts += `<option value="${d}" ${sel}>Dia ${d}</option>`; } return opts; }
-        function buildProdutosOptions() { let opts = '<option value="">Selecione o produto no sistema...</option>'; todosProdutos.forEach(p => { opts += `<option value="${p.nome}">${p.nome}</option>`; }); return opts; }
+        function buildProdutosOptions() {
+            if (todosProdutos.length === 0) {
+                return '<option value="">Nenhum produto cadastrado. Use o campo para digitar.</option>';
+            }
+            let opts = '<option value="">Selecione o produto no sistema...</option>';
+            todosProdutos.forEach(p => {
+                opts += `<option value="${p.nome}">${p.nome}</option>`;
+            });
+            return opts;
+        }
 
         function filtrarPorVendedor(val) { selectedVendedor = val; currentPage = 1; carregarDados(); }
         function changeMonth(val) { const [year, month] = val.split('-').map(Number); currentYear = year; currentMonth = month; currentDay = null; carregarDados(); }
@@ -820,10 +804,10 @@
         function renderInicio() {
             const main = document.getElementById('mainContent');
             const dados = allOrcamentos; const total = dados.length; const fechadosArr = dados.filter(o => o.status === 'Fechado' || o.status === 'Vendido'); const fechados = fechadosArr.length;
-            const negociacao = dados.filter(o => ['Em Negociação', 'Contato Inicial', 'Negociação de Valores', 'Aguardando Decisão'].includes(o.status)).length; 
+            const negociacao = dados.filter(o => ['Em Negociação', 'Contato Inicial', 'Negociação de Valores', 'Aguardando Decisão'].includes(o.status)).length;
             const valorVendido = fechadosArr.reduce((s, o) => s + parseFloat(o.valor_orcado || 0), 0);
             const conversao = total ? Math.round((fechados / total) * 100) : 0; const metaAtual = calcularMetaTotal(); const percMetaExato = metaAtual ? Math.round((valorVendido / metaAtual) * 100) : 0;
-            
+
             const isGerente = currentUser.perfil === 'Gerente' || currentUser.perfil === 'Administrador' || currentUser.perfil === 'Admin'; const gamified = getGamifiedColors(percMetaExato);
             const headerHtml = `<header class="dashboard-header"><h1>${isGerente ? 'Dashboard Vendas' : 'Dashboard do Vendedor'}</h1><div class="header-controls">${renderFiltrosData(isGerente)}<div class="header-notification-area"><button class="btn-notification" id="btnNotification" onclick="event.stopPropagation(); toggleNotifications();" aria-label="Notificações"><svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg><span class="notification-badge" id="notificationBadgeCount"></span></button></div></div></header>`;
             const progressHtml = `<div class="gamified-progress-card"><div class="progress-icon" style="background:${gamified.iconBg}; box-shadow:${gamified.shadow};">${gamified.iconSvg}</div><div class="progress-info"><h3>Atingimento de Meta</h3><p class="progress-subtitle">R$ ${valorVendido.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} / R$ ${metaAtual.toLocaleString('pt-BR')}</p></div><div class="progress-bar-outer"><div class="progress-bar-inner-gamified" style="width:${Math.min(100, percMetaExato)}%; background:${gamified.bg}; box-shadow:${gamified.shadow};"><span class="progress-percent">${percMetaExato > 100 ? '100+' : percMetaExato}%</span></div></div><div class="progress-motive-text" style="color:${gamified.motiveColor};">${gamified.motive}</div></div>`;
@@ -833,7 +817,7 @@
             let rankingHtml = ''; if (isGerente && todosVendedores.length > 0) { const maxValor = Math.max(1, ...todosVendedores.map(v => { return dados.filter(o => o.id_usuario === v.id_usuario && (o.status === 'Fechado' || o.status === 'Vendido')).reduce((s, o) => s + parseFloat(o.valor_orcado || 0), 0); })); const ranking = todosVendedores.map(v => { const vendido = dados.filter(o => o.id_usuario === v.id_usuario && (o.status === 'Fechado' || o.status === 'Vendido')).reduce((s, o) => s + parseFloat(o.valor_orcado || 0), 0); return { nome: v.nome, vendido, pct: maxValor ? (vendido / maxValor) * 100 : 0 }; }).sort((a, b) => b.vendido - a.vendido); rankingHtml = `<div class="chart-card"><h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg> Top Vendedores</h3><ul class="ranking-list">${ranking.map((r, i) => `<li class="ranking-item"><span class="ranking-pos">#${i + 1}</span><span class="ranking-nome">${r.nome}</span><div class="ranking-bar-outer"><div class="ranking-bar-inner" style="width:${r.pct}%;"><span>${Math.round(r.pct)}%</span></div></div><span class="ranking-valor">R$ ${r.vendido.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}</span></li>`).join('')}</ul></div>`; }
             const top5 = {}; fechadosArr.forEach(o => { const m = (o.modelo_colchao || 'Sem modelo').trim(); if (!top5[m]) top5[m] = { nome: m, count: 0 }; top5[m].count++; }); const top5Ordenado = Object.values(top5).sort((a, b) => b.count - a.count).slice(0, 5); const top5Html = top5Ordenado.map((p, i) => `<li><span class="top5-rank">${i + 1}</span><span style="flex:1;">${p.nome}</span></li>`).join('') || '<li style="justify-content:center; color:var(--text-muted);">Nenhuma venda fechada</li>';
             const colVendedor = isGerente ? '<th>Vendedor</th>' : ''; const searchTagHtml = searchTerm ? `<span class="search-tag">🔍 "${searchTerm}" <span class="remove-search" onclick="clearSearch()" aria-label="Limpar busca">✕</span></span>` : '';
-            
+
             const tabelaHtml = `<div class="table-card"><div class="table-card-header"><h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/></svg> Carteira de Negociações</h3><div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">${searchTagHtml}<input type="text" class="search-input" placeholder="Buscar cliente..." id="searchInput" oninput="handleSearch()" value="${searchTerm}" aria-label="Buscar cliente">
             <select class="form-input" style="width:auto; padding:8px 16px; border-radius:20px; font-size:var(--font-sm);" id="listFilterSelect" onchange="selectFilter(this.value)" aria-label="Filtrar por status">
                 <option value="todos" ${currentFilter === 'todos' ? 'selected' : ''}>Todos</option>
@@ -877,31 +861,53 @@
             html += '</tbody></table></div>'; document.getElementById('mainContent').innerHTML = html;
         }
 
+        // ✅ MELHORIA 1: Detalhes do cliente com fallback ao banco de dados
         async function abrirDetalhesCliente(id) {
-            const orc = allOrcamentos.find(o => o.id_orcamento == id); if (!orc) return;
-            clienteAtualParaDetalhes = orc; previousView = currentView; currentView = 'detalhes_cliente';
+            let orc = allOrcamentos.find(o => o.id_orcamento == id);
+            if (!orc) {
+                // Fallback: busca direta no banco se não estiver na lista filtrada
+                console.warn('Orçamento não encontrado em allOrcamentos, buscando diretamente do banco...');
+                try {
+                    const { data, error } = await db.from('orcamentos').select('*, clientes(nome_cliente, whatsapp), usuarios(nome)').eq('id_orcamento', id).single();
+                    if (error || !data) throw new Error('Orçamento não encontrado.');
+                    orc = data;
+                    // Adiciona ao array local para evitar futuras buscas
+                    if (!allOrcamentos.find(o => o.id_orcamento == id)) allOrcamentos.unshift(orc);
+                } catch (e) {
+                    console.error(e);
+                    alert('Não foi possível abrir os detalhes deste cliente. O registro pode ter sido removido.');
+                    return;
+                }
+            }
+            clienteAtualParaDetalhes = orc;
+            previousView = currentView;
+            currentView = 'detalhes_cliente';
             showLoader();
             try {
                 const { data: comentarios, error } = await db.from('comentarios').select('*').eq('id_orcamento', id).order('data_criacao', { ascending: true });
-                if(error) throw new Error(error.message);
+                if (error) throw new Error(error.message);
                 clienteAtualParaDetalhes.comentarios = comentarios || [];
-            } catch(e) { console.error("Erro ao buscar comentarios", e); clienteAtualParaDetalhes.comentarios = []; }
-            setUltimaVisita(id); renderDetalhesClientePage();
+            } catch (e) {
+                console.error("Erro ao buscar comentarios", e);
+                clienteAtualParaDetalhes.comentarios = [];
+            }
+            setUltimaVisita(id);
+            renderDetalhesClientePage();
             hideLoader();
         }
 
         function renderDetalhesClientePage() {
             if (!clienteAtualParaDetalhes) { navigateTo(previousView); return; }
-            const orc = clienteAtualParaDetalhes; const id = orc.id_orcamento; 
+            const orc = clienteAtualParaDetalhes; const id = orc.id_orcamento;
             const isGerente = currentUser.perfil === 'Gerente' || currentUser.perfil === 'Administrador' || currentUser.perfil === 'Admin';
             const main = document.getElementById('mainContent');
-            let actionsHtml = ''; 
+            let actionsHtml = '';
             const isOpenStatus = ['Em Negociação', 'Contato Inicial', 'Negociação de Valores', 'Aguardando Decisão'].includes(orc.status);
-            if (isOpenStatus && !isGerente) { 
-                actionsHtml += `<button class="btn-primary-action" onclick="abrirConfirmaFechamento(${orc.id_orcamento})">Fechar Venda</button>`; 
-                actionsHtml += `<button class="btn-danger-ghost" onclick="abrirMotivoPerda(${orc.id_orcamento})">Perder Venda</button>`; 
+            if (isOpenStatus && !isGerente) {
+                actionsHtml += `<button class="btn-primary-action" onclick="abrirConfirmaFechamento(${orc.id_orcamento})">Fechar Venda</button>`;
+                actionsHtml += `<button class="btn-danger-ghost" onclick="abrirMotivoPerda(${orc.id_orcamento})">Perder Venda</button>`;
             }
-            const comentarios = clienteAtualParaDetalhes.comentarios || []; 
+            const comentarios = clienteAtualParaDetalhes.comentarios || [];
             const comentariosHtml = renderComentariosHtml(comentarios, id);
             const statusClass = classToFormatStatus(orc.status);
             const interesse = orc.interesse || '-'; const interesseColor = interesse === 'Alta' ? '#10b981' : interesse === 'Média' ? '#f59e0b' : interesse === 'Baixa' ? '#ef4444' : '#94a3b8';
@@ -929,7 +935,7 @@
                     </div>
                     <div class="info-group">
                         <label style="display:flex; align-items:center; font-size: var(--font-xs); font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px;">
-                            Observações Fixas 
+                            Observações Fixas
                             <span id="obsSalvaLoader" class="auto-save-indicator">✓ Salvo</span>
                         </label>
                         <textarea id="obsFixaCliente" class="form-input" rows="3" placeholder="Ex: Cliente prefere contato de manhã..." onblur="salvarObservacaoFixa(${orc.id_orcamento})">${orc.observacoes || ''}</textarea>
@@ -948,11 +954,13 @@
                     <div class="field-error" id="agendarMsg" style="text-align:center; margin-top:8px;"></div>
                 </div>
             </div>
+            <!-- ✅ MELHORIA 3: Caixa de comentários destacada nos detalhes do cliente -->
             <div class="info-card" style="margin-top:24px;">
-                <h4 class="info-card-title" style="margin-bottom:20px;"><svg class="info-card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> Timeline de Atendimento</h4>
+                <h4 class="info-card-title" style="margin-bottom:20px;"><svg class="info-card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> Comentários e Histórico</h4>
                 <div id="listaComentarios" style="margin-bottom:16px; max-height:400px; overflow-y:auto; padding-right:8px;">${comentariosHtml}</div>
                 <div style="background:var(--bg-body); padding:16px; border-radius:12px; border:1px solid var(--border-light);">
-                    <textarea id="novoComentario" rows="3" class="form-input" style="background:var(--card-bg);" placeholder="Adicionar comentário, registro de ligação ou anotação..." oninput="atualizarIndicadorDigitacao()"></textarea>
+                    <label style="font-size:var(--font-xs); font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:8px; display:block;">Adicionar Comentário</label>
+                    <textarea id="novoComentario" rows="3" class="form-input" style="background:var(--card-bg);" placeholder="Registre aqui observações, ligações ou anotações sobre este cliente..." oninput="atualizarIndicadorDigitacao()"></textarea>
                     <div class="typing-indicator" id="typingIndicator">Mensagem sendo redigida...</div>
                     <div style="margin-top:12px; display:flex; align-items:center; justify-content:space-between;">
                         <div class="field-error" id="comentarioMsg"></div>
@@ -966,10 +974,10 @@
 
         function abrirModalMeta(id, nome, valorAtual) { idMetaEdicao = id; document.getElementById('inputMetaValor').value = 'R$ ' + valorAtual.toLocaleString('pt-BR'); document.getElementById('errMeta').textContent = ''; document.getElementById('modalEditarMeta').classList.add('open'); document.getElementById('inputMetaValor').focus(); }
         function fecharModalMeta() { document.getElementById('modalEditarMeta').classList.remove('open'); idMetaEdicao = null; const btn = document.getElementById('btnSalvarMeta'); btn.classList.remove('saving'); btn.disabled = false;}
-        
-        async function salvarNovaMeta() { 
-            const raw = document.getElementById('inputMetaValor').value.replace(/[^\d,]/g, '').replace(',', '.'); const valor = parseFloat(raw); 
-            if (!valor || valor <= 0) { document.getElementById('errMeta').textContent = 'Valor inválido.'; return; } 
+
+        async function salvarNovaMeta() {
+            const raw = document.getElementById('inputMetaValor').value.replace(/[^\d,]/g, '').replace(',', '.'); const valor = parseFloat(raw);
+            if (!valor || valor <= 0) { document.getElementById('errMeta').textContent = 'Valor inválido.'; return; }
             const btn = document.getElementById('btnSalvarMeta'); btn.classList.add('saving'); btn.disabled = true;
             try {
                 const { error } = await db.from('usuarios').update({ meta_mensal: Math.round(valor) }).eq('id_usuario', idMetaEdicao);
@@ -989,7 +997,7 @@
 
         function atualizarTabelaPaginada() {
             const tbody = document.getElementById('tableBody'); const pagination = document.getElementById('paginationContainer'); if (!tbody || !pagination) return;
-            let dadosBase = [...allOrcamentos]; 
+            let dadosBase = [...allOrcamentos];
             if (currentFilter !== 'todos') { dadosBase = dadosBase.filter(o => { const s = o.status; if (currentFilter === 'Vendido' || currentFilter === 'Pós-Venda') return s === 'Fechado' || s === 'Vendido' || s === 'Pós-Venda'; if (currentFilter === 'Perdido') return s === 'Declinado' || s === 'Perdido'; if (['Contato Inicial', 'Negociação de Valores', 'Aguardando Decisão'].includes(currentFilter)) return s === currentFilter || s === 'Em Negociação'; return s === currentFilter; }); }
             if (searchTerm) dadosBase = dadosBase.filter(o => (o.clientes?.nome_cliente || '').toLowerCase().includes(searchTerm.toLowerCase()));
             const totalPages = Math.ceil(dadosBase.length / ITEMS_PER_PAGE) || 1; if (currentPage > totalPages) currentPage = totalPages; const inicio = (currentPage - 1) * ITEMS_PER_PAGE; const pagina = dadosBase.slice(inicio, inicio + ITEMS_PER_PAGE);
@@ -1016,7 +1024,7 @@
         function atualizarBotoesLixeira() {
             const container = document.getElementById('produtosContainer');
             const btns = container.querySelectorAll('.btn-remove-item');
-            if(btns.length === 1) { btns[0].style.opacity = '0.3'; btns[0].style.pointerEvents = 'none'; }
+            if (btns.length === 1) { btns[0].style.opacity = '0.3'; btns[0].style.pointerEvents = 'none'; }
             else { btns.forEach(b => { b.style.opacity = '1'; b.style.pointerEvents = 'auto'; }); }
         }
 
@@ -1030,6 +1038,7 @@
 
         function abrirNovoOrcamento() { if (currentUser?.perfil !== 'Vendedor') return; navigateTo('novo_orcamento'); }
 
+        // ✅ MELHORIA 2: Lista suspensa de produtos no Novo Orçamento
         function renderNovoOrcamentoPage() {
             const main = document.getElementById('mainContent');
             main.innerHTML = `<header class="dashboard-header"><div style="display:flex; align-items:center; gap:16px;"><button class="btn-voltar" onclick="navigateTo(previousView)">← Voltar</button><h1>Novo Orçamento</h1></div></header>
@@ -1042,6 +1051,7 @@
                 </div>
                 <div style="display:flex; flex-direction: column; gap: 24px;">
                     <div class="novo-orcamento-section"><h4 class="novo-orcamento-title"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path><line x1="3" y1="6" x2="21" y2="6"></line><path d="M16 10a4 4 0 0 1-8 0"></path></svg> Itens do Orçamento *</h4>
+                        <p style="font-size:var(--font-xs); color:var(--text-muted); margin-bottom:8px;">Selecione o produto da lista ou digite um novo.</p>
                         <div class="produtos-list" id="produtosContainer"></div>
                         <button type="button" class="btn-add-item" onclick="adicionarProdutoRow()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Adicionar outro produto</button>
                         <div class="field-error" id="errItens"></div>
@@ -1056,7 +1066,7 @@
             <p class="msg" id="modalMsg" style="text-align: right; margin-top:12px;"></p>`;
             adicionarProdutoRow();
             calcTotalModal();
-            salvandoOrcamento = false; 
+            salvandoOrcamento = false;
             document.getElementById('modNome').focus();
         }
 
@@ -1064,20 +1074,20 @@
 
         async function salvarOrcamento() {
             if (currentUser?.perfil !== 'Vendedor') return; if (salvandoOrcamento) return;
-            const nome = document.getElementById('modNome').value.trim(); const whats = document.getElementById('modWhats').value.trim(); 
+            const nome = document.getElementById('modNome').value.trim(); const whats = document.getElementById('modWhats').value.trim();
             const rows = document.querySelectorAll('.produto-row');
             let nomesProdutos = []; let valorTotalCalculado = 0; let itensValidosCount = 0;
             rows.forEach(row => { const prodNome = row.querySelector('.prod-nome').value.trim(); const prodValor = parseCurrency(row.querySelector('.prod-valor').value); if (prodNome && prodValor > 0) { nomesProdutos.push(prodNome); valorTotalCalculado += prodValor; itensValidosCount++; } else if (prodNome || prodValor > 0) { row.querySelector('.prod-nome').style.borderColor = !prodNome ? '#ef4444' : 'var(--border-light)'; row.querySelector('.prod-valor').style.borderColor = prodValor <= 0 ? '#ef4444' : 'var(--border-light)'; } else { row.querySelector('.prod-nome').style.borderColor = 'var(--border-light)'; row.querySelector('.prod-valor').style.borderColor = 'var(--border-light)'; } });
             const interesse = document.getElementById('modInteresse').value || null; const observacoes = document.getElementById('modObservacoes').value.trim() || null; const dataContato = document.getElementById('modDataContato').value || null; const horaContato = document.getElementById('modHoraContato').value || null;
-            let valid = true; valid &= validateField('modNome', 'errNome'); valid &= validateField('modWhats', 'errWhats'); 
+            let valid = true; valid &= validateField('modNome', 'errNome'); valid &= validateField('modWhats', 'errWhats');
             if (itensValidosCount === 0) { document.getElementById('errItens').textContent = 'Preencha o nome e o valor de pelo menos um produto.'; valid = false; } else { document.getElementById('errItens').textContent = ''; }
             if (!valid) return;
             const modeloFinalCombinado = nomesProdutos.join(' + ');
             salvandoOrcamento = true; const btn = document.getElementById('btnSalvarOrcamento'); btn.classList.add('saving'); btn.disabled = true; btn.querySelector('.btn-text').textContent = 'Salvando...'; document.getElementById('modalMsg').textContent = '';
-            try { 
-                const { data: cliente, error: erroCliente } = await db.from('clientes').insert([{ nome_cliente: nome, whatsapp: whats }]).select().single(); 
+            try {
+                const { data: cliente, error: erroCliente } = await db.from('clientes').insert([{ nome_cliente: nome, whatsapp: whats }]).select().single();
                 if (erroCliente) throw new Error("Erro no Cliente: " + erroCliente.message);
-                const { data: orc, error: erroOrc } = await db.from('orcamentos').insert([{ id_cliente: cliente.id_cliente, id_usuario: currentUser.id_usuario, modelo_colchao: modeloFinalCombinado, valor_orcado: valorTotalCalculado, status: 'Contato Inicial', interesse: interesse, observacoes: observacoes, data_contato: dataContato, hora_contato: horaContato }]).select().single(); 
+                const { data: orc, error: erroOrc } = await db.from('orcamentos').insert([{ id_cliente: cliente.id_cliente, id_usuario: currentUser.id_usuario, modelo_colchao: modeloFinalCombinado, valor_orcado: valorTotalCalculado, status: 'Contato Inicial', interesse: interesse, observacoes: observacoes, data_contato: dataContato, hora_contato: horaContato }]).select().single();
                 if (erroOrc) throw new Error("Erro no Orçamento: " + erroOrc.message);
                 carregarDados().then(() => { abrirDetalhesCliente(orc.id_orcamento); });
             } catch (error) { console.error(error); document.getElementById('modalMsg').innerHTML = `<span style="color: #ef4444; font-size: 13px; font-weight: 600;">${error.message}</span>`; btn.classList.remove('saving'); btn.disabled = false; btn.querySelector('.btn-text').textContent = 'Salvar Orçamento'; salvandoOrcamento = false; }
@@ -1088,43 +1098,43 @@
         function abrirConfirmaFechamento(id) { idOrcamentoParaPerder = null; clienteAtualParaDetalhes = allOrcamentos.find(o => o.id_orcamento == id); document.getElementById('modalConfirmaFechamento').classList.add('open'); document.getElementById('btnConfirmaFechar').onclick = function() { acaoDetalhes(id, 'Vendido'); fecharConfirmaFechamento(); }; }
         function fecharConfirmaFechamento() { document.getElementById('modalConfirmaFechamento').classList.remove('open'); }
 
-        async function confirmarPerda() { 
-            const motivo = document.getElementById('motivoPerda').value.trim(); 
+        async function confirmarPerda() {
+            const motivo = document.getElementById('motivoPerda').value.trim();
             const errMotivo = document.getElementById('errMotivo');
-            if (!motivo) { errMotivo.textContent = 'Descreva o motivo.'; return; } 
-            const btn = event.currentTarget; 
+            if (!motivo) { errMotivo.textContent = 'Descreva o motivo.'; return; }
+            const btn = event.currentTarget;
             const btnOrig = btn.innerHTML;
-            btn.innerHTML = 'Salvando...'; 
+            btn.innerHTML = 'Salvando...';
             btn.disabled = true;
             try {
-                const { error: err1 } = await db.from('orcamentos').update({ status: 'Perdido' }).eq('id_orcamento', idOrcamentoParaPerder); 
+                const { error: err1 } = await db.from('orcamentos').update({ status: 'Perdido' }).eq('id_orcamento', idOrcamentoParaPerder);
                 if (err1) throw new Error(err1.message);
                 const { error: err2 } = await db.from('comentarios').insert([{ id_orcamento: idOrcamentoParaPerder, texto: motivo, tipo: 'Perda', autor: currentUser.nome }]);
                 if (err2) throw new Error(err2.message);
-                fecharMotivoPerda(); 
-                await abrirDetalhesCliente(clienteAtualParaDetalhes?.id_orcamento || idOrcamentoParaPerder); 
+                fecharMotivoPerda();
+                await abrirDetalhesCliente(clienteAtualParaDetalhes?.id_orcamento || idOrcamentoParaPerder);
                 carregarDados();
-            } catch (e) { console.error(e); errMotivo.textContent = 'Erro ao salvar: ' + e.message; btn.innerHTML = btnOrig; btn.disabled = false; } 
+            } catch (e) { console.error(e); errMotivo.textContent = 'Erro ao salvar: ' + e.message; btn.innerHTML = btnOrig; btn.disabled = false; }
         }
-        
-        async function acaoDetalhes(id, status) { 
-            if (currentUser?.perfil !== 'Vendedor') return; 
+
+        async function acaoDetalhes(id, status) {
+            if (currentUser?.perfil !== 'Vendedor') return;
             try {
-                const { error } = await db.from('orcamentos').update({ status }).eq('id_orcamento', id); 
+                const { error } = await db.from('orcamentos').update({ status }).eq('id_orcamento', id);
                 if (error) throw new Error(error.message);
-                voltarDetalhes(); carregarDados(); 
+                voltarDetalhes(); carregarDados();
             } catch(e) { console.error(e); }
         }
 
         async function agendarContato() {
-            const data = document.getElementById('agendarData').value; 
-            const hora = document.getElementById('agendarHora').value; 
-            const tipo = document.getElementById('agendarTipo').value; 
+            const data = document.getElementById('agendarData').value;
+            const hora = document.getElementById('agendarHora').value;
+            const tipo = document.getElementById('agendarTipo').value;
             const obs = document.getElementById('agendarObservacao')?.value?.trim() || '';
-            const tipoErro = document.getElementById('agendarTipoErro'); 
+            const tipoErro = document.getElementById('agendarTipoErro');
             const msg = document.getElementById('agendarMsg');
-            if (!data) { msg.textContent = 'Selecione uma data.'; return; } 
-            if (!tipo) { tipoErro.textContent = 'Selecione o tipo de contato.'; document.getElementById('agendarTipo').style.borderColor = '#ef4444'; return; } 
+            if (!data) { msg.textContent = 'Selecione uma data.'; return; }
+            if (!tipo) { tipoErro.textContent = 'Selecione o tipo de contato.'; document.getElementById('agendarTipo').style.borderColor = '#ef4444'; return; }
             else { tipoErro.textContent = ''; document.getElementById('agendarTipo').style.borderColor = 'var(--border-light)'; }
             const btn = document.getElementById('btnConfirmarAgendamento');
             btn.querySelector('.btn-spinner').style.display = 'inline-block';
@@ -1133,15 +1143,15 @@
             try {
                 const { error: err1 } = await db.from('orcamentos').update({ data_contato: data, hora_contato: hora, observacao_agendamento: obs }).eq('id_orcamento', clienteAtualParaDetalhes.id_orcamento);
                 if (err1) throw new Error(err1.message);
-                const dataFormatada = new Date(data + 'T00:00:00').toLocaleDateString('pt-BR'); 
-                let texto = `Retorno agendado para ${dataFormatada}${hora ? ' às ' + hora : ''} • ${tipo}`; 
+                const dataFormatada = new Date(data + 'T00:00:00').toLocaleDateString('pt-BR');
+                let texto = `Retorno agendado para ${dataFormatada}${hora ? ' às ' + hora : ''} • ${tipo}`;
                 if (obs) texto += `\nLembrete: ${obs}`;
                 const { error: err2 } = await db.from('comentarios').insert([{ id_orcamento: clienteAtualParaDetalhes.id_orcamento, texto: texto, tipo: 'Sistema', autor: currentUser.nome }]);
                 if (err2) throw new Error(err2.message);
-                await abrirDetalhesCliente(clienteAtualParaDetalhes.id_orcamento); 
+                await abrirDetalhesCliente(clienteAtualParaDetalhes.id_orcamento);
                 const newMsg = document.getElementById('agendarMsg');
                 if (newMsg) { newMsg.textContent = 'Agendado com sucesso!'; newMsg.style.color = 'var(--brand-blue)'; setTimeout(() => { const m = document.getElementById('agendarMsg'); if(m) m.textContent = ''; }, 2500); }
-            } catch (e) { console.error(e); msg.textContent = 'Erro ao agendar: ' + e.message; msg.style.color = '#ef4444'; btn.querySelector('.btn-spinner').style.display = 'none'; btn.querySelector('.btn-text').style.opacity = '1'; btn.disabled = false; } 
+            } catch (e) { console.error(e); msg.textContent = 'Erro ao agendar: ' + e.message; msg.style.color = '#ef4444'; btn.querySelector('.btn-spinner').style.display = 'none'; btn.querySelector('.btn-text').style.opacity = '1'; btn.disabled = false; }
         }
 
         function fecharModalExcluirUsuario() { const el = document.getElementById('modalExcluirUsuarioAdmin'); if (el) el.classList.remove('open'); idUsuarioParaExcluir = null; }
@@ -1165,7 +1175,7 @@
                 const { data: todos_usr } = await db.from('usuarios').select('*').order('nome');
                 todosUsuarios = todos_usr || []; todosVendedores = todosUsuarios.filter(u => u.perfil === 'Vendedor');
                 fecharModalExcluirUsuario(); renderAdminUsuarios(document.getElementById('mainContent'));
-            } catch (e) { console.error(e); err.textContent = 'Erro: ' + e.message; } 
+            } catch (e) { console.error(e); err.textContent = 'Erro: ' + e.message; }
             finally { btn.innerHTML = 'Excluir Definitivamente'; btn.disabled = false; }
         }
 
@@ -1187,12 +1197,12 @@
 
         function renderAdminUsuarios(main) {
             let html = `<header class="dashboard-header"><div style="display:flex; align-items:center; gap:16px;"><button class="btn-voltar" onclick="navigateTo('admin_inicio')">← Voltar</button><h1>Gerenciar Usuários</h1></div><button class="btn-primary-action" onclick="abrirModalUsuarioAdmin()"><svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" fill="none" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Novo Usuário</button></header><div class="table-card"><table><thead><tr><th>Nome</th><th>E-mail</th><th>Perfil</th><th>Status</th><th>Ações</th></tr></thead><tbody>`;
-            if (todosUsuarios.length === 0) { html += `<tr><td colspan="5" style="text-align:center; padding:24px;">Nenhum usuário encontrado.</td></tr>`; } 
-            else { 
-                todosUsuarios.forEach(u => { 
-                    const statusClass = u.status === 'Ativo' ? 'status-tag vendido' : 'status-tag perdido'; 
-                    html += `<tr><td><strong>${u.nome}</strong></td><td>${u.email || '-'}</td><td>${u.perfil}</td><td><span class="${statusClass}">${u.status || 'Ativo'}</span></td><td><div style="display:flex; gap:8px;"><button class="btn-salvar-modal" style="padding:6px 12px; font-size:11px; background:var(--card-bg); border:1px solid var(--border-light); color:var(--text-primary);" onclick="abrirModalUsuarioAdmin('${u.id_usuario}')">Editar</button>${u.id_usuario !== currentUser.id_usuario ? `<button class="btn-danger-ghost" style="padding:6px 12px; font-size:11px;" onclick="abrirModalExcluirUsuarioAdmin('${u.id_usuario}', '${u.nome}')">Excluir</button>` : ''}</div></td></tr>`; 
-                }); 
+            if (todosUsuarios.length === 0) { html += `<tr><td colspan="5" style="text-align:center; padding:24px;">Nenhum usuário encontrado.</td></tr>`; }
+            else {
+                todosUsuarios.forEach(u => {
+                    const statusClass = u.status === 'Ativo' ? 'status-tag vendido' : 'status-tag perdido';
+                    html += `<tr><td><strong>${u.nome}</strong></td><td>${u.email || '-'}</td><td>${u.perfil}</td><td><span class="${statusClass}">${u.status || 'Ativo'}</span></td><td><div style="display:flex; gap:8px;"><button class="btn-salvar-modal" style="padding:6px 12px; font-size:11px; background:var(--card-bg); border:1px solid var(--border-light); color:var(--text-primary);" onclick="abrirModalUsuarioAdmin('${u.id_usuario}')">Editar</button>${u.id_usuario !== currentUser.id_usuario ? `<button class="btn-danger-ghost" style="padding:6px 12px; font-size:11px;" onclick="abrirModalExcluirUsuarioAdmin('${u.id_usuario}', '${u.nome}')">Excluir</button>` : ''}</div></td></tr>`;
+                });
             }
             html += `</tbody></table></div>`; main.innerHTML = html;
         }
@@ -1213,7 +1223,6 @@
             }
         });
 
-        // Inicialização
         checkSession();
     </script>
 </body>
