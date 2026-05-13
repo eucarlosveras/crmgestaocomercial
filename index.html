@@ -201,11 +201,9 @@
             <h2>CV CRM</h2>
             <p class="subtitle">Sistema de Gestão Comercial</p>
             <div class="login-form">
-                <!-- Seletor de Perfil no lugar de Email/Senha -->
+                <!-- Seletor de Perfil dinâmico -->
                 <select id="loginPerfil">
-                    <option value="Admin">Administrador (TI)</option>
-                    <option value="Gerente">Gerente</option>
-                    <option value="Vendedor">Vendedor</option>
+                    <option value="">Carregando usuários...</option>
                 </select>
             </div>
             <button class="login-btn" id="btnLogin" onclick="handleLogin()">
@@ -298,62 +296,71 @@
         function showLoader() { document.getElementById('globalLoader').classList.add('loading'); }
         function hideLoader() { document.getElementById('globalLoader').classList.remove('loading'); }
 
+        async function checkSession() {
+            document.getElementById('loginOverlay').classList.remove('hidden');
+            
+            const select = document.getElementById('loginPerfil');
+            select.innerHTML = '<option value="">Carregando usuários...</option>';
+            
+            try {
+                // Busca todos os usuários ativos no banco
+                const { data, error } = await db.from('usuarios').select('*').eq('status', 'Ativo').order('nome');
+                if (error) throw error;
+
+                select.innerHTML = '<option value="">Selecione quem vai entrar...</option>'; 
+                
+                if (data.length === 0) {
+                    select.innerHTML = '<option value="">Nenhum usuário cadastrado</option>';
+                    return;
+                }
+
+                // Cria uma opção para cada usuário real
+                data.forEach(u => {
+                    select.innerHTML += `<option value="${u.id_usuario}">${u.nome} (${u.perfil})</option>`;
+                });
+            } catch (e) {
+                console.error("Erro ao carregar usuários:", e);
+                select.innerHTML = '<option value="">Erro ao carregar usuários</option>';
+            }
+        }
+
         async function handleLogin() {
             const btn = document.getElementById('btnLogin');
             if (btn.disabled) return;
 
-            const perfilSelecionado = document.getElementById('loginPerfil').value;
+            const idSelecionado = document.getElementById('loginPerfil').value;
             const msg = document.getElementById('loginMsg');
+
+            if (!idSelecionado) {
+                msg.textContent = 'Por favor, selecione um usuário na lista.';
+                return;
+            }
 
             btn.classList.add('loading'); 
             btn.disabled = true; 
             msg.innerHTML = '';
 
             try {
-                // Cria um usuário mock (fictício) baseado no perfil selecionado
-                // Na vida real, sem auth, você precisa decidir como identificar o usuário se for salvar no banco.
-                // O ideal é buscar um usuário na tabela 'usuarios' que tenha esse perfil.
-                // Vamos tentar buscar o primeiro usuário que tenha o perfil escolhido, 
-                // se não achar, criamos um mock puro na memória.
-                
+                // Busca EXATAMENTE o usuário que foi clicado na lista
                 const { data: userFound, error } = await db.from('usuarios')
                                                    .select('*')
-                                                   .eq('perfil', perfilSelecionado)
-                                                   .eq('status', 'Ativo')
-                                                   .limit(1)
+                                                   .eq('id_usuario', idSelecionado)
                                                    .single();
 
-                if (userFound && !error) {
-                    currentUser = userFound;
-                } else {
-                    // Fallback se a tabela estiver vazia
-                    console.warn(`Nenhum usuário com perfil ${perfilSelecionado} encontrado no banco. Usando mock temporário.`);
-                    currentUser = {
-                        id_usuario: 'usuario-mock-' + perfilSelecionado.toLowerCase(),
-                        nome: 'Usuário ' + perfilSelecionado,
-                        perfil: perfilSelecionado,
-                        status: 'Ativo'
-                    };
-                }
+                if (error) throw error;
+
+                currentUser = userFound; // Define o usuário atual do sistema
                 
                 document.getElementById('loginOverlay').classList.add('hidden'); 
-                
-                // Inicia o sistema
-                initAppAfterLogin();
+                initAppAfterLogin(); // Inicia o sistema
 
             } catch (err) { 
                 console.error("Erro interno no login:", err); 
-                msg.innerHTML = `<span style="color: #ef4444; font-size: 13px; font-weight: 600;">Erro ao carregar o sistema. Verifique o console.</span>`; 
+                msg.innerHTML = `<span style="color: #ef4444; font-size: 13px; font-weight: 600;">Erro ao entrar. Tente novamente.</span>`; 
             } finally {
                 btn.classList.remove('loading'); 
                 btn.disabled = false; 
             }
-        }
-
-        // ---------- AUTO-LOGIN REMOVIDO ----------
-        // Agora apenas garante que a tela de login (seleção de perfil) seja mostrada
-        async function checkSession() {
-            document.getElementById('loginOverlay').classList.remove('hidden');
         }
 
         function initAppAfterLogin() {
@@ -815,7 +822,7 @@
 
         function renderMetas() {
             let html = '<header class="dashboard-header"><div style="display:flex; align-items:center; gap:16px;"><button class="btn-voltar" onclick="navigateTo(\'admin_inicio\')">← Voltar</button><h1>Gestão de Metas</h1></div></header><div class="table-card"><table><thead><tr><th>Vendedor</th><th>Meta Atual (R$)</th><th>Ações</th></tr></thead><tbody>';
-            todosVendedores.forEach(v => { const meta = getMetaVendedor(v.id_usuario); html += `<tr><td><strong>${v.nome}</strong></td><td>R$ ${meta.toLocaleString('pt-BR')}</td><td><button class="btn-salvar-modal" style="padding:6px 12px; font-size:11px; background:var(--card-bg); border:1px solid var(--border-light); color:var(--text-primary);" onclick="abrirModalMeta(${v.id_usuario}, '${v.nome}', ${meta})">Editar Meta</button></td></tr>`; });
+            todosVendedores.forEach(v => { const meta = getMetaVendedor(v.id_usuario); html += `<tr><td><strong>${v.nome}</strong></td><td>R$ ${meta.toLocaleString('pt-BR')}</td><td><button class="btn-salvar-modal" style="padding:6px 12px; font-size:11px; background:var(--card-bg); border:1px solid var(--border-light); color:var(--text-primary);" onclick="abrirModalMeta('${v.id_usuario}', '${v.nome}', ${meta})">Editar Meta</button></td></tr>`; });
             html += '</tbody></table></div>'; document.getElementById('mainContent').innerHTML = html;
         }
 
