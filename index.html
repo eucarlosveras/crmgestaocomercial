@@ -5,37 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CV CRM · Gestão Comercial</title>
     <!--
-    ⚠️ ALTERAÇÕES NECESSÁRIAS FORA DO CÓDIGO (FAÇA VOCÊ MESMO):
-    1. Execute o script SQL abaixo no SQL Editor do Supabase:
-    
-    CREATE OR REPLACE FUNCTION public.handle_new_user()
-    RETURNS trigger
-    LANGUAGE plpgsql
-    SECURITY DEFINER SET search_path = ''
-    AS $$
-    BEGIN
-      INSERT INTO public.usuarios (id_usuario, nome, perfil, status, meta_mensal, pin_acesso)
-      VALUES (
-        NEW.id,
-        COALESCE(NEW.raw_user_meta_data ->> 'nome', 'Usuário'),
-        COALESCE(NEW.raw_user_meta_data ->> 'perfil', 'Vendedor'),
-        'Ativo',
-        50000,
-        NULL
-      );
-      RETURN NEW;
-    END;
-    $$;
-
-    DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
-    CREATE TRIGGER on_auth_user_created
-      AFTER INSERT ON auth.users
-      FOR EACH ROW
-      EXECUTE FUNCTION public.handle_new_user();
-
-    2. Nas configurações do Supabase, habilite o provedor de Email (com ou sem confirmação, dependendo da sua necessidade).
-
-    Pronto! O restante já está implementado no código abaixo.
+    ⚠️ ATENÇÃO: COMO A AUTENTICAÇÃO FOI REMOVIDA
+    1. Você precisa DESATIVAR O RLS de todas as tabelas (orcamentos, clientes, usuarios, etc) no Supabase.
     -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -84,8 +55,8 @@
         .login-card .subtitle { font-size: var(--font-base); color: var(--text-secondary); margin-bottom: 32px; font-weight: 500; line-height: 1.4; }
         
         .login-form { display: flex; flex-direction: column; gap: 16px; margin-bottom: 16px; }
-        .login-form input { width: 100%; padding: 14px 16px; border-radius: 12px; border: 1.5px solid var(--border-light); background: var(--card-bg); font-family: 'Inter', sans-serif; font-size: var(--font-base); color: var(--text-primary); transition: border 0.2s; }
-        .login-form input:focus { border-color: var(--brand-blue); outline: none; box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
+        .login-form select { width: 100%; padding: 14px 16px; border-radius: 12px; border: 1.5px solid var(--border-light); background: var(--card-bg); font-family: 'Inter', sans-serif; font-size: var(--font-base); color: var(--text-primary); transition: border 0.2s; cursor: pointer; }
+        .login-form select:focus { border-color: var(--brand-blue); outline: none; box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
         .login-btn { width: 100%; padding: 16px 20px; border-radius: 12px; background: var(--brand-blue); color: #fff; border: none; font-weight: 700; cursor: pointer; font-size: var(--font-md); font-family: 'Inter', sans-serif; transition: all var(--transition); display: flex; align-items: center; justify-content: center; gap: 10px; }
         .login-btn:hover { background: var(--brand-blue-dark); box-shadow: 0 8px 24px var(--brand-blue-glow); transform: translateY(-2px); } .login-btn:disabled { opacity: 0.7; cursor: not-allowed; pointer-events: none; transform: none; box-shadow: none; }
         .login-btn.loading .btn-text { opacity: 0; } .login-btn .spinner { position: absolute; width: 22px; height: 22px; border: 3px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 0.8s cubic-bezier(0.4, 0, 0.2, 1) infinite; opacity: 0; transition: opacity 0.2s; }
@@ -223,14 +194,19 @@
 <body>
     <div id="globalLoader"><div class="loader-fill"></div></div>
 
+    <!-- TELA DE LOGIN SEM AUTENTICAÇÃO REAL -->
     <div class="login-overlay" id="loginOverlay">
         <div class="login-card">
             <div class="login-icon" aria-hidden="true">CV</div>
             <h2>CV CRM</h2>
             <p class="subtitle">Sistema de Gestão Comercial</p>
             <div class="login-form">
-                <input type="email" id="loginEmail" placeholder="Email" autocomplete="email">
-                <input type="password" id="loginSenha" placeholder="Senha" autocomplete="current-password">
+                <!-- Seletor de Perfil no lugar de Email/Senha -->
+                <select id="loginPerfil">
+                    <option value="Admin">Administrador (TI)</option>
+                    <option value="Gerente">Gerente</option>
+                    <option value="Vendedor">Vendedor</option>
+                </select>
             </div>
             <button class="login-btn" id="btnLogin" onclick="handleLogin()">
                 <span class="spinner"></span>
@@ -261,12 +237,12 @@
     <div class="modal-overlay" id="modalEditarMeta" onclick="if(event.target === this) fecharModalMeta()"><div class="modal-card" style="max-width:420px;"><h3>Editar Meta</h3><label for="inputMetaValor">Nova meta (R$)</label><input type="text" id="inputMetaValor" placeholder="R$ 50.000,00" inputmode="decimal"><div class="field-error" id="errMeta"></div><div class="modal-btns"><button class="btn-cancelar-modal" onclick="fecharModalMeta()">Cancelar</button><button class="btn-salvar-modal" id="btnSalvarMeta" onclick="salvarNovaMeta()"><span class="btn-spinner"></span><span class="btn-text">Salvar</span></button></div></div></div>
     <div class="modal-overlay" id="modalExcluirComentario" onclick="if(event.target === this) fecharModalExcluir()"><div class="modal-card" style="max-width:420px;"><h3>Excluir comentário</h3><p style="margin-bottom:16px;">Tem certeza que deseja excluir este comentário?</p><div class="modal-btns"><button class="btn-cancelar-modal" onclick="fecharModalExcluir()">Cancelar</button><button class="btn-salvar-modal" id="btnConfirmarExclusao" style="background:#ef4444;" onclick="confirmarExclusaoComentario()"><span class="btn-spinner"></span><span class="btn-text">Excluir</span></button></div></div></div>
 
+    <!-- MODAL USUÁRIO ADMIN ATUALIZADO (SEM SENHA E COM E-MAIL OPCIONAL) -->
     <div class="modal-overlay" id="modalUsuarioAdmin" onclick="if(event.target === this) fecharModalUsuarioAdmin()">
         <div class="modal-card" style="max-width:420px;">
             <h3 id="modalUsuarioTitle">Novo Usuário</h3>
             <label for="adminModNome">Nome Completo</label><input type="text" id="adminModNome" placeholder="Ex: João da Silva">
-            <label for="adminModEmail">E-mail</label><input type="email" id="adminModEmail" placeholder="vendedor@loja.com.br">
-            <label for="adminModSenha">Senha (mín. 6 caracteres)</label><input type="password" id="adminModSenha" placeholder="********" minlength="6">
+            <label for="adminModEmail">E-mail (Opcional)</label><input type="email" id="adminModEmail" placeholder="vendedor@loja.com.br">
             <div class="modal-row">
                 <div><label for="adminModPerfil">Perfil do Sistema</label><select id="adminModPerfil"><option value="Vendedor">Vendedor</option><option value="Gerente">Gerente</option><option value="Admin">Administrador (TI)</option></select></div>
                 <div><label for="adminModStatus">Status de Acesso</label><select id="adminModStatus"><option value="Ativo">Ativo</option><option value="Inativo">Inativo</option></select></div>
@@ -322,114 +298,62 @@
         function showLoader() { document.getElementById('globalLoader').classList.add('loading'); }
         function hideLoader() { document.getElementById('globalLoader').classList.remove('loading'); }
 
-        // ---------- HANDLE LOGIN ATUALIZADA ----------
         async function handleLogin() {
             const btn = document.getElementById('btnLogin');
             if (btn.disabled) return;
 
-            const email = document.getElementById('loginEmail').value.trim();
-            const senha = document.getElementById('loginSenha').value.trim();
+            const perfilSelecionado = document.getElementById('loginPerfil').value;
             const msg = document.getElementById('loginMsg');
-
-            if (!email || !senha) { 
-                msg.innerHTML = 'Digite e-mail e senha.'; 
-                return; 
-            }
 
             btn.classList.add('loading'); 
             btn.disabled = true; 
             msg.innerHTML = '';
 
             try {
-                const { data: authData, error: authError } = await db.auth.signInWithPassword({
-                    email: email,
-                    password: senha,
-                });
+                // Cria um usuário mock (fictício) baseado no perfil selecionado
+                // Na vida real, sem auth, você precisa decidir como identificar o usuário se for salvar no banco.
+                // O ideal é buscar um usuário na tabela 'usuarios' que tenha esse perfil.
+                // Vamos tentar buscar o primeiro usuário que tenha o perfil escolhido, 
+                // se não achar, criamos um mock puro na memória.
+                
+                const { data: userFound, error } = await db.from('usuarios')
+                                                   .select('*')
+                                                   .eq('perfil', perfilSelecionado)
+                                                   .eq('status', 'Ativo')
+                                                   .limit(1)
+                                                   .single();
 
-                if (authError) throw new Error('E-mail ou senha incorretos.');
-
-                const { data: userData, error: dbError } = await db
-                    .from('usuarios')
-                    .select('*')
-                    .eq('id_usuario', authData.user.id)
-                    .single();
-
-                if (dbError || !userData) {
-                    throw new Error('Usuário não encontrado na base local.');
+                if (userFound && !error) {
+                    currentUser = userFound;
+                } else {
+                    // Fallback se a tabela estiver vazia
+                    console.warn(`Nenhum usuário com perfil ${perfilSelecionado} encontrado no banco. Usando mock temporário.`);
+                    currentUser = {
+                        id_usuario: 'usuario-mock-' + perfilSelecionado.toLowerCase(),
+                        nome: 'Usuário ' + perfilSelecionado,
+                        perfil: perfilSelecionado,
+                        status: 'Ativo'
+                    };
                 }
-
-                if (userData.status === 'Inativo') {
-                    await db.auth.signOut();
-                    throw new Error('Conta desativada. Fale com o Administrador.');
-                }
-
-                currentUser = userData;
                 
                 document.getElementById('loginOverlay').classList.add('hidden'); 
-                document.getElementById('sidebar').style.display = 'flex'; 
-                document.getElementById('mainContent').style.display = 'flex';
                 
-                const isAdministrador = currentUser.perfil === 'Administrador' || currentUser.perfil === 'Admin'; 
-                const isGerente = currentUser.perfil === 'Gerente';
-                
-                if (isAdministrador) {
-                    document.getElementById('navAdmin').style.display = 'flex'; 
-                    document.getElementById('navMetas').style.display = 'flex'; 
-                    document.getElementById('textNavInicio').textContent = 'Dashboard Vendas'; 
-                    document.getElementById('fabButton').style.display = 'none';
-                    const { data: todos_usr } = await db.from('usuarios').select('*').order('nome'); 
-                    todosUsuarios = todos_usr || []; 
-                    todosVendedores = todosUsuarios.filter(u => u.perfil === 'Vendedor');
-                } else if (isGerente) {
-                    document.getElementById('navAdmin').style.display = 'none'; 
-                    document.getElementById('navMetas').style.display = 'flex'; 
-                    document.getElementById('textNavInicio').textContent = 'Dashboard Vendas'; 
-                    document.getElementById('fabButton').style.display = 'none';
-                    const { data: vendedores } = await db.from('usuarios').select('*').eq('perfil', 'Vendedor'); 
-                    todosVendedores = vendedores || []; 
-                    todosUsuarios = vendedores || [];
-                } else {
-                    document.getElementById('navAdmin').style.display = 'none'; 
-                    document.getElementById('navMetas').style.display = 'none'; 
-                    document.getElementById('textNavInicio').textContent = 'Início'; 
-                    document.getElementById('fabButton').style.display = 'flex';
-                }
-
-                const hora = new Date().getHours(); 
-                let saudacao = hora < 12 ? 'Bom dia' : hora < 18 ? 'Boa tarde' : 'Boa noite';
-                document.getElementById('sidebarGreeting').textContent = saudacao + ', ' + currentUser.nome.split(' ')[0]; 
-                document.getElementById('sidebarNome').textContent = currentUser.nome; 
-                document.getElementById('sidebarAvatar').textContent = currentUser.nome.charAt(0).toUpperCase(); 
-                document.getElementById('sidebarPerfil').textContent = currentUser.perfil;
-                
-                await carregarProdutos(); 
-                await carregarDados(); 
-                await carregarHistoricoFaturamento();
-                
-                if (isAdministrador) navigateTo('admin_inicio'); 
-                else navigateTo('inicio');
+                // Inicia o sistema
+                initAppAfterLogin();
 
             } catch (err) { 
                 console.error("Erro interno no login:", err); 
+                msg.innerHTML = `<span style="color: #ef4444; font-size: 13px; font-weight: 600;">Erro ao carregar o sistema. Verifique o console.</span>`; 
+            } finally {
                 btn.classList.remove('loading'); 
                 btn.disabled = false; 
-                msg.innerHTML = `<span style="color: #ef4444; font-size: 13px; font-weight: 600;">${err.message}</span>`; 
             }
         }
 
-        // ---------- AUTO‑LOGIN VIA SUPABASE AUTH ----------
+        // ---------- AUTO-LOGIN REMOVIDO ----------
+        // Agora apenas garante que a tela de login (seleção de perfil) seja mostrada
         async function checkSession() {
-            const { data: { session } } = await db.auth.getSession();
-            if (session && session.user) {
-                const { data: userData, error } = await db.from('usuarios').select('*').eq('id_usuario', session.user.id).single();
-                if (!error && userData) {
-                    currentUser = { ...userData, nome: userData.nome || 'Usuário', perfil: userData.perfil || 'Vendedor' };
-                    document.getElementById('loginOverlay').classList.add('hidden');
-                    initAppAfterLogin();
-                } else {
-                    await db.auth.signOut();
-                }
-            }
+            document.getElementById('loginOverlay').classList.remove('hidden');
         }
 
         function initAppAfterLogin() {
@@ -448,15 +372,22 @@
             document.getElementById('textNavInicio').textContent = (isAdministrador || isGerente) ? 'Dashboard Vendas' : 'Início';
             document.getElementById('fabButton').style.display = (!isAdministrador && !isGerente) ? 'flex' : 'none';
 
-            const { data: all } = await db.from('usuarios').select('*').order('nome');
-            todosUsuarios = all || [];
-            todosVendedores = todosUsuarios.filter(u => u.perfil === 'Vendedor');
+            // Carrega a lista de usuários para os filtros
+            try {
+                const { data: all } = await db.from('usuarios').select('*').order('nome');
+                todosUsuarios = all || [];
+                todosVendedores = todosUsuarios.filter(u => u.perfil === 'Vendedor');
+            } catch (e) {
+                console.error("Erro ao carregar usuários:", e);
+                todosUsuarios = [];
+                todosVendedores = [];
+            }
 
             const hora = new Date().getHours();
             let saudacao = hora < 12 ? 'Bom dia' : hora < 18 ? 'Boa tarde' : 'Boa noite';
-            document.getElementById('sidebarGreeting').textContent = saudacao + ', ' + currentUser.nome.split(' ')[0];
-            document.getElementById('sidebarNome').textContent = currentUser.nome;
-            document.getElementById('sidebarAvatar').textContent = currentUser.nome.charAt(0).toUpperCase();
+            document.getElementById('sidebarGreeting').textContent = saudacao + ', ' + (currentUser.nome ? currentUser.nome.split(' ')[0] : 'Usuário');
+            document.getElementById('sidebarNome').textContent = currentUser.nome || 'Usuário';
+            document.getElementById('sidebarAvatar').textContent = currentUser.nome ? currentUser.nome.charAt(0).toUpperCase() : 'U';
             document.getElementById('sidebarPerfil').textContent = currentUser.perfil;
         }
 
@@ -469,33 +400,48 @@
         }
 
         async function logout() {
-            await db.auth.signOut();
+            // Como não tem mais sessão, apenas recarrega a página
             currentUser = null;
-            location.reload();
+            location.reload(); 
         }
 
         async function salvarUsuarioAdmin() {
             const nome = document.getElementById('adminModNome').value.trim();
-            const email = document.getElementById('adminModEmail').value.trim();
-            const senha = document.getElementById('adminModSenha').value.trim();
+            const email = document.getElementById('adminModEmail').value.trim(); // Agora opcional
             const perfil = document.getElementById('adminModPerfil').value;
+            const status = document.getElementById('adminModStatus').value;
             const err = document.getElementById('errAdminUsuario');
 
-            if (!nome || !email || !senha) { err.textContent = 'Preencha todos os campos obrigatórios.'; return; }
-            if (senha.length < 6) { err.textContent = 'A senha deve ter pelo menos 6 caracteres.'; return; }
+            if (!nome) { err.textContent = 'Preencha o nome do usuário.'; return; }
 
             const btn = document.getElementById('btnSalvarUsuarioAdmin');
             btn.classList.add('saving'); btn.disabled = true; err.textContent = '';
 
             try {
-                const supabaseTemp = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: false } });
-                const { data, error } = await supabaseTemp.auth.signUp({
-                    email,
-                    password: senha,
-                    options: { data: { nome, perfil } }
-                });
-                if (error) throw new Error(error.message);
+                if (idUsuarioEmEdicao) {
+                    // Editando
+                    const { error } = await db.from('usuarios').update({
+                        nome: nome,
+                        email: email,
+                        perfil: perfil,
+                        status: status
+                    }).eq('id_usuario', idUsuarioEmEdicao);
+                    if (error) throw new Error(error.message);
+                } else {
+                    // Inserindo novo direto na tabela (gera um UUID falso usando crypto.randomUUID se suportado, senão o supabase gera)
+                    const { error } = await db.from('usuarios').insert([{
+                        // Deixa o Supabase gerar o id_usuario se o tipo da coluna for uuid e tiver valor default gen_random_uuid()
+                        // Caso contrário, use: id_usuario: crypto.randomUUID(),
+                        nome: nome,
+                        email: email,
+                        perfil: perfil,
+                        status: status,
+                        meta_mensal: META_PADRAO
+                    }]);
+                    if (error) throw new Error(error.message);
+                }
 
+                // Atualiza listas locais
                 const { data: usuarios } = await db.from('usuarios').select('*').order('nome');
                 todosUsuarios = usuarios || [];
                 todosVendedores = todosUsuarios.filter(u => u.perfil === 'Vendedor');
@@ -517,7 +463,6 @@
             const title = document.getElementById('modalUsuarioTitle');
             const nomeInput = document.getElementById('adminModNome');
             const emailInput = document.getElementById('adminModEmail');
-            const senhaInput = document.getElementById('adminModSenha');
             const perfilSel = document.getElementById('adminModPerfil');
             const statusSel = document.getElementById('adminModStatus');
 
@@ -525,18 +470,13 @@
                 const user = todosUsuarios.find(u => u.id_usuario === id);
                 title.textContent = 'Editar Usuário';
                 nomeInput.value = user.nome || '';
+                emailInput.value = user.email || '';
                 perfilSel.value = user.perfil || 'Vendedor';
                 statusSel.value = user.status || 'Ativo';
-                emailInput.style.display = 'none';
-                emailInput.previousElementSibling.style.display = 'none';
-                senhaInput.style.display = 'none';
-                senhaInput.previousElementSibling.style.display = 'none';
             } else {
                 title.textContent = 'Novo Usuário';
-                nomeInput.value = ''; emailInput.value = ''; senhaInput.value = '';
+                nomeInput.value = ''; emailInput.value = '';
                 perfilSel.value = 'Vendedor'; statusSel.value = 'Ativo';
-                emailInput.style.display = ''; emailInput.previousElementSibling.style.display = '';
-                senhaInput.style.display = ''; senhaInput.previousElementSibling.style.display = '';
             }
             document.getElementById('modalUsuarioAdmin').classList.add('open');
         }
@@ -546,24 +486,36 @@
             idUsuarioEmEdicao = null;
         }
 
-        // ====================================================================
-        // FUNÇÕES ORIGINAIS MANTIDAS (INTACTAS)
-        // ====================================================================
-
         async function carregarDados() {
             if (!currentUser) return;
             showLoader();
-            let query = db.from('orcamentos').select('*, clientes(nome_cliente, whatsapp), usuarios!inner(nome)');
-            if (currentUser.perfil === 'Vendedor') query = query.eq('id_usuario', currentUser.id_usuario);
-            else if (selectedVendedor !== 'todos') query = query.eq('id_usuario', selectedVendedor);
-            
-            if (currentDay) { const start = new Date(currentYear, currentMonth - 1, currentDay).toISOString(); const end = new Date(currentYear, currentMonth - 1, currentDay, 23, 59, 59).toISOString(); query = query.gte('data_criacao', start).lte('data_criacao', end); }
-            else if (currentMonth && currentYear) { const startDate = new Date(currentYear, currentMonth - 1, 1).toISOString(); const endDate = new Date(currentYear, currentMonth, 0, 23, 59, 59).toISOString(); query = query.gte('data_criacao', startDate).lte('data_criacao', endDate); }
-            
-            const { data, error } = await query.order('data_criacao', { ascending: false });
-            if (error) console.error("Erro no carregamento", error);
+            try {
+                let query = db.from('orcamentos').select('*, clientes(nome_cliente, whatsapp), usuarios(nome)');
+                
+                // Filtra apenas se for vendedor e o ID do vendedor atual não for o mock genérico
+                if (currentUser.perfil === 'Vendedor' && !currentUser.id_usuario.includes('mock')) {
+                    query = query.eq('id_usuario', currentUser.id_usuario);
+                }
+                else if (selectedVendedor !== 'todos') {
+                    query = query.eq('id_usuario', selectedVendedor);
+                }
+                
+                if (currentDay) { const start = new Date(currentYear, currentMonth - 1, currentDay).toISOString(); const end = new Date(currentYear, currentMonth - 1, currentDay, 23, 59, 59).toISOString(); query = query.gte('data_criacao', start).lte('data_criacao', end); }
+                else if (currentMonth && currentYear) { const startDate = new Date(currentYear, currentMonth - 1, 1).toISOString(); const endDate = new Date(currentYear, currentMonth, 0, 23, 59, 59).toISOString(); query = query.gte('data_criacao', startDate).lte('data_criacao', endDate); }
+                
+                const { data, error } = await query.order('data_criacao', { ascending: false });
+                if (error) {
+                    console.error("Erro no carregamento", error);
+                    // Se der erro (provavelmente RLS ativado bloqueando), silencia e deixa array vazio
+                    allOrcamentos = [];
+                } else {
+                    allOrcamentos = data || [];
+                }
+            } catch(e) {
+                console.error("Exceção ao carregar:", e);
+                allOrcamentos = [];
+            }
 
-            allOrcamentos = data || [];
             atualizarBadge();
             const notificacoes = buildNotifications(); const alertCount = notificacoes.filter(n => n.id !== null).length; renderNotificationBadge(alertCount);
             
@@ -592,16 +544,18 @@
         }
 
         async function carregarHistoricoFaturamento() {
-            if (!currentUser || currentUser.perfil !== 'Vendedor') { historicoFaturamento = []; return; }
+            if (!currentUser || currentUser.perfil !== 'Vendedor' || currentUser.id_usuario.includes('mock')) { historicoFaturamento = []; return; }
             const hoje = new Date(); historicoFaturamento = [];
-            for (let i = 5; i >= 0; i--) {
-                const mes = new Date(hoje.getFullYear(), hoje.getMonth() - i, 1); const ano = mes.getFullYear(); const mesNum = mes.getMonth() + 1;
-                const startDate = new Date(ano, mesNum - 1, 1).toISOString(); const endDate = new Date(ano, mesNum, 0, 23, 59, 59).toISOString();
-                const { data } = await db.from('orcamentos').select('valor_orcado').eq('id_usuario', currentUser.id_usuario).in('status', ['Fechado', 'Vendido']).gte('data_criacao', startDate).lte('data_criacao', endDate);
-                const total = (data || []).reduce((s, o) => s + parseFloat(o.valor_orcado || 0), 0);
-                const nomeMes = mes.toLocaleDateString('pt-BR', { month: 'short' }).replace('.', ''); const anoAbrev = ano.toString().slice(-2);
-                historicoFaturamento.push({ mes: nomeMes + '/' + anoAbrev, valor: total });
-            }
+            try {
+                for (let i = 5; i >= 0; i--) {
+                    const mes = new Date(hoje.getFullYear(), hoje.getMonth() - i, 1); const ano = mes.getFullYear(); const mesNum = mes.getMonth() + 1;
+                    const startDate = new Date(ano, mesNum - 1, 1).toISOString(); const endDate = new Date(ano, mesNum, 0, 23, 59, 59).toISOString();
+                    const { data } = await db.from('orcamentos').select('valor_orcado').eq('id_usuario', currentUser.id_usuario).in('status', ['Fechado', 'Vendido']).gte('data_criacao', startDate).lte('data_criacao', endDate);
+                    const total = (data || []).reduce((s, o) => s + parseFloat(o.valor_orcado || 0), 0);
+                    const nomeMes = mes.toLocaleDateString('pt-BR', { month: 'short' }).replace('.', ''); const anoAbrev = ano.toString().slice(-2);
+                    historicoFaturamento.push({ mes: nomeMes + '/' + anoAbrev, valor: total });
+                }
+            } catch(e) { console.error(e); }
         }
 
         function atualizarBadge() {
@@ -797,7 +751,7 @@
             if (dropdown.classList.contains('open')) { dropdown.classList.remove('open'); return; }
             let html = '<div class="notif-header">Central de Alertas</div>';
             notificacoes.forEach(n => {
-                const dotClass = n.tipo === 'critical' ? 'critical' : n.tipo === 'warning' ? 'warning' : 'info';
+                const dotClass = n.tipo === 'critical' ? 'critical' : n.tipo === 'warning' ? 'warning' : n.tipo === 'info';
                 const onclick = n.id ? `onclick="abrirDetalhesCliente(${n.id}); document.getElementById('notificationDropdown').classList.remove('open');"` : '';
                 html += `<div class="notif-item" ${onclick} style="${n.id ? '' : 'cursor:default;'}"><span class="notif-dot ${dotClass}"></span><div style="flex:1;"><div>${n.texto}</div><div style="font-size:10px; color:var(--text-muted);">${n.data}</div></div></div>`;
             });
@@ -1179,9 +1133,9 @@
             if (!isGerente) return;
             const totalUsuarios = todosUsuarios.length; const ativos = todosUsuarios.filter(u => u.status === 'Ativo').length; const totalVendedores = todosVendedores.length;
             main.innerHTML = `<header class="dashboard-header"><h1>Painel Administrativo</h1></header>
-            <div class="action-grid" style="margin-bottom: 24px;">
-                <div class="action-btn-card" onclick="navigateTo('admin_usuarios')"><div class="icon-wrapper"><svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" fill="none" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87m-4-12a4 4 0 010 7.75"/></svg></div><h4>Gerenciar Usuários</h4><p>Adicionar, editar ou inativar acessos</p></div>
-                <div class="action-btn-card" onclick="navigateTo('metas')"><div class="icon-wrapper"><svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" fill="none" stroke-width="2"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/></svg></div><h4>Gestão de Metas</h4><p>Definir metas mensais por vendedor</p></div>
+            <div class="action-grid" style="margin-bottom: 24px; display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                <div class="action-btn-card" onclick="navigateTo('admin_usuarios')" style="background: var(--card-bg); border: 1px solid var(--border-light); padding: 24px; border-radius: var(--radius-md); cursor: pointer; transition: all 0.2s;"><div class="icon-wrapper" style="color: var(--brand-blue); margin-bottom: 12px;"><svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" fill="none" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87m-4-12a4 4 0 010 7.75"/></svg></div><h4 style="font-weight: 700; margin-bottom: 4px;">Gerenciar Usuários</h4><p style="font-size: var(--font-sm); color: var(--text-muted);">Adicionar, editar ou inativar acessos</p></div>
+                <div class="action-btn-card" onclick="navigateTo('metas')" style="background: var(--card-bg); border: 1px solid var(--border-light); padding: 24px; border-radius: var(--radius-md); cursor: pointer; transition: all 0.2s;"><div class="icon-wrapper" style="color: var(--brand-blue); margin-bottom: 12px;"><svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" fill="none" stroke-width="2"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/></svg></div><h4 style="font-weight: 700; margin-bottom: 4px;">Gestão de Metas</h4><p style="font-size: var(--font-sm); color: var(--text-muted);">Definir metas mensais por vendedor</p></div>
             </div>
             <div class="kpi-row">
                 <div class="kpi-card"><div class="kpi-label-row"><span class="kpi-dot blue"></span><span class="kpi-label">Total de Usuários</span></div><div class="kpi-value">${totalUsuarios}</div></div>
@@ -1196,7 +1150,7 @@
             else { 
                 todosUsuarios.forEach(u => { 
                     const statusClass = u.status === 'Ativo' ? 'status-tag vendido' : 'status-tag perdido'; 
-                    html += `<tr><td><strong>${u.nome}</strong></td><td>${u.email || '-'}</td><td>${u.perfil}</td><td><span class="${statusClass}">${u.status || 'Ativo'}</span></td><td><div style="display:flex; gap:8px;"><button class="btn-salvar-modal" style="padding:6px 12px; font-size:11px; background:var(--card-bg); border:1px solid var(--border-light); color:var(--text-primary);" onclick="abrirModalUsuarioAdmin(${u.id_usuario})">Editar</button>${u.id_usuario !== currentUser.id_usuario ? `<button class="btn-danger-ghost" style="padding:6px 12px; font-size:11px;" onclick="abrirModalExcluirUsuarioAdmin(${u.id_usuario}, '${u.nome}')">Excluir</button>` : ''}</div></td></tr>`; 
+                    html += `<tr><td><strong>${u.nome}</strong></td><td>${u.email || '-'}</td><td>${u.perfil}</td><td><span class="${statusClass}">${u.status || 'Ativo'}</span></td><td><div style="display:flex; gap:8px;"><button class="btn-salvar-modal" style="padding:6px 12px; font-size:11px; background:var(--card-bg); border:1px solid var(--border-light); color:var(--text-primary);" onclick="abrirModalUsuarioAdmin('${u.id_usuario}')">Editar</button>${u.id_usuario !== currentUser.id_usuario ? `<button class="btn-danger-ghost" style="padding:6px 12px; font-size:11px;" onclick="abrirModalExcluirUsuarioAdmin('${u.id_usuario}', '${u.nome}')">Excluir</button>` : ''}</div></td></tr>`; 
                 }); 
             }
             html += `</tbody></table></div>`; main.innerHTML = html;
