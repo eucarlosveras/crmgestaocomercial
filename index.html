@@ -57,6 +57,14 @@
         .login-form { display: flex; flex-direction: column; gap: 16px; margin-bottom: 16px; }
         .login-form select { width: 100%; padding: 14px 16px; border-radius: 12px; border: 1.5px solid var(--border-light); background: var(--card-bg); font-family: 'Inter', sans-serif; font-size: var(--font-base); color: var(--text-primary); transition: border 0.2s; cursor: pointer; }
         .login-form select:focus { border-color: var(--brand-blue); outline: none; box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
+        
+        /* Novos estilos do Segment Control de Login */
+        .segment-control { display: flex; background: #e2e8f0; border-radius: 12px; padding: 4px; position: relative; }
+        body.dark .segment-control { background: #0f172a; border: 1px solid #334155; }
+        .segment-btn { flex: 1; padding: 10px 4px; text-align: center; font-size: 13px; font-weight: 600; color: var(--text-secondary); cursor: pointer; border-radius: 8px; transition: all 0.3s ease; border: none; background: transparent; font-family: 'Inter', sans-serif; }
+        .segment-btn.active { background: #fff; color: var(--brand-blue); box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        body.dark .segment-btn.active { background: #1e293b; color: var(--brand-blue); }
+
         .login-btn { width: 100%; padding: 16px 20px; border-radius: 12px; background: var(--brand-blue); color: #fff; border: none; font-weight: 700; cursor: pointer; font-size: var(--font-md); font-family: 'Inter', sans-serif; transition: all var(--transition); display: flex; align-items: center; justify-content: center; gap: 10px; }
         .login-btn:hover { background: var(--brand-blue-dark); box-shadow: 0 8px 24px var(--brand-blue-glow); transform: translateY(-2px); } .login-btn:disabled { opacity: 0.7; cursor: not-allowed; pointer-events: none; transform: none; box-shadow: none; }
         .login-btn.loading .btn-text { opacity: 0; } .login-btn .spinner { position: absolute; width: 22px; height: 22px; border: 3px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 0.8s cubic-bezier(0.4, 0, 0.2, 1) infinite; opacity: 0; transition: opacity 0.2s; }
@@ -200,12 +208,21 @@
             <div class="login-icon" aria-hidden="true">CV</div>
             <h2>CV CRM</h2>
             <p class="subtitle">Sistema de Gestão Comercial</p>
+            
             <div class="login-form">
-                <!-- Seletor de Perfil dinâmico -->
-                <select id="loginPerfil">
-                    <option value="">Carregando usuários...</option>
+                <!-- Passo 1: Botões de Perfil -->
+                <div class="segment-control" id="perfilSegment">
+                    <button type="button" class="segment-btn" onclick="selecionarPerfil('Vendedor', this)">Vendedor</button>
+                    <button type="button" class="segment-btn" onclick="selecionarPerfil('Gerente', this)">Gerente</button>
+                    <button type="button" class="segment-btn" onclick="selecionarPerfil('Administrador', this)">Admin (TI)</button>
+                </div>
+                
+                <!-- Passo 2: Lista de Nomes Limpos (Oculta por padrão) -->
+                <select id="loginUsuarioSelect" style="display: none;">
+                    <option value="">Primeiro, escolha um perfil acima ⬆️</option>
                 </select>
             </div>
+
             <button class="login-btn" id="btnLogin" onclick="handleLogin()">
                 <span class="spinner"></span>
                 <span class="btn-text">Entrar no Sistema</span>
@@ -242,7 +259,7 @@
             <label for="adminModNome">Nome Completo</label><input type="text" id="adminModNome" placeholder="Ex: João da Silva">
             <label for="adminModEmail">E-mail (Opcional)</label><input type="email" id="adminModEmail" placeholder="vendedor@loja.com.br">
             <div class="modal-row">
-                <div><label for="adminModPerfil">Perfil do Sistema</label><select id="adminModPerfil"><option value="Vendedor">Vendedor</option><option value="Gerente">Gerente</option><option value="Admin">Administrador (TI)</option></select></div>
+                <div><label for="adminModPerfil">Perfil do Sistema</label><select id="adminModPerfil"><option value="Vendedor">Vendedor</option><option value="Gerente">Gerente</option><option value="Administrador">Administrador (TI)</option></select></div>
                 <div><label for="adminModStatus">Status de Acesso</label><select id="adminModStatus"><option value="Ativo">Ativo</option><option value="Inativo">Inativo</option></select></div>
             </div>
             <div class="field-error" id="errAdminUsuario"></div>
@@ -292,35 +309,53 @@
         let historicoFaturamento = [];
         let comentarioParaExcluir = null;
         let idUsuarioEmEdicao = null;
+        
+        // Novas variáveis globais para a tela de login
+        let usuariosParaLogin = [];
+        let perfilSelecionadoLogin = null;
 
         function showLoader() { document.getElementById('globalLoader').classList.add('loading'); }
         function hideLoader() { document.getElementById('globalLoader').classList.remove('loading'); }
 
         async function checkSession() {
             document.getElementById('loginOverlay').classList.remove('hidden');
-            
-            const select = document.getElementById('loginPerfil');
-            select.innerHTML = '<option value="">Carregando usuários...</option>';
+            document.getElementById('loginUsuarioSelect').style.display = 'none'; // Esconde a lista inicialmente
             
             try {
-                // Busca todos os usuários ativos no banco
+                // Ao abrir a tela, o sistema vai no banco em silêncio e baixa TODOS os usuários ativos
                 const { data, error } = await db.from('usuarios').select('*').eq('status', 'Ativo').order('nome');
                 if (error) throw error;
-
-                select.innerHTML = '<option value="">Selecione quem vai entrar...</option>'; 
                 
-                if (data.length === 0) {
-                    select.innerHTML = '<option value="">Nenhum usuário cadastrado</option>';
-                    return;
-                }
-
-                // Cria uma opção para cada usuário real
-                data.forEach(u => {
-                    select.innerHTML += `<option value="${u.id_usuario}">${u.nome} (${u.perfil})</option>`;
-                });
+                usuariosParaLogin = data || []; // Guarda na memória para não gastar requisições ao banco
             } catch (e) {
                 console.error("Erro ao carregar usuários:", e);
-                select.innerHTML = '<option value="">Erro ao carregar usuários</option>';
+                document.getElementById('loginMsg').innerHTML = 'Erro de conexão com o banco de dados.';
+            }
+        }
+
+        // Nova função: dispara quando clica no botão do perfil (Vendedor, Gerente, Admin)
+        function selecionarPerfil(perfil, btnElement) {
+            perfilSelecionadoLogin = perfil;
+            
+            // Troca a cor dos botões (Efeito de aba ativa)
+            document.querySelectorAll('.segment-btn').forEach(b => b.classList.remove('active'));
+            btnElement.classList.add('active');
+
+            // Revela a lista de seleção
+            const select = document.getElementById('loginUsuarioSelect');
+            select.style.display = 'block'; 
+            select.innerHTML = '<option value="">2. Selecione seu nome...</option>';
+
+            // Filtra os usuários que já estavam na memória pelo perfil clicado
+            const filtrados = usuariosParaLogin.filter(u => u.perfil === perfil || (perfil === 'Administrador' && u.perfil === 'Admin'));
+
+            if (filtrados.length === 0) {
+                select.innerHTML = `<option value="">Nenhum ${perfil} cadastrado</option>`;
+            } else {
+                // Preenche a lista com os nomes limpos, sem o cargo
+                filtrados.forEach(u => {
+                    select.innerHTML += `<option value="${u.id_usuario}">${escapeHtml(u.nome)}</option>`;
+                });
             }
         }
 
@@ -328,38 +363,32 @@
             const btn = document.getElementById('btnLogin');
             if (btn.disabled) return;
 
-            const idSelecionado = document.getElementById('loginPerfil').value;
+            const idSelecionado = document.getElementById('loginUsuarioSelect').value;
             const msg = document.getElementById('loginMsg');
 
+            if (!perfilSelecionadoLogin) {
+                msg.textContent = 'Passo 1: Escolha um perfil acima.'; return;
+            }
             if (!idSelecionado) {
-                msg.textContent = 'Por favor, selecione um usuário na lista.';
-                return;
+                msg.textContent = 'Passo 2: Selecione o seu nome na lista.'; return;
             }
 
-            btn.classList.add('loading'); 
-            btn.disabled = true; 
-            msg.innerHTML = '';
+            btn.classList.add('loading'); btn.disabled = true; msg.innerHTML = '';
 
             try {
-                // Busca EXATAMENTE o usuário que foi clicado na lista
-                const { data: userFound, error } = await db.from('usuarios')
-                                                   .select('*')
-                                                   .eq('id_usuario', idSelecionado)
-                                                   .single();
-
-                if (error) throw error;
+                // Recupera o usuário exato da memória sem precisar ir ao banco de novo
+                const userFound = usuariosParaLogin.find(u => u.id_usuario === idSelecionado);
+                if (!userFound) throw new Error("Usuário inválido.");
 
                 currentUser = userFound; // Define o usuário atual do sistema
-                
                 document.getElementById('loginOverlay').classList.add('hidden'); 
                 initAppAfterLogin(); // Inicia o sistema
 
             } catch (err) { 
                 console.error("Erro interno no login:", err); 
-                msg.innerHTML = `<span style="color: #ef4444; font-size: 13px; font-weight: 600;">Erro ao entrar. Tente novamente.</span>`; 
+                msg.innerHTML = `<span style="color: #ef4444; font-size: 13px; font-weight: 600;">Erro ao entrar no sistema.</span>`; 
             } finally {
-                btn.classList.remove('loading'); 
-                btn.disabled = false; 
+                btn.classList.remove('loading'); btn.disabled = false; 
             }
         }
 
@@ -583,7 +612,7 @@
             else if (view === 'clientes') renderClientes();
             else if (view === 'metas') renderMetas();
             else if (view === 'detalhes_cliente') renderDetalhesClientePage();
-            else if (view === 'novo_orcamento') renderNovoOrcamentoPage();
+            else if (currentView === 'novo_orcamento') renderNovoOrcamentoPage();
         }
 
         function getMetaVendedor(idVendedor) { 
