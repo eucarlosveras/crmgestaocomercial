@@ -335,6 +335,41 @@
         // Cache para dados mensais (MELHORIA 18)
         let cacheOrcamentosMensais = {};
 
+        // ==================== NOTIFICAÇÕES COM PERSISTÊNCIA DE LEITURA ====================
+        let notificacoesLidas = new Set();
+
+        function carregarNotificacoesLidas() {
+            const stored = localStorage.getItem('notificacoesLidas');
+            if (stored) {
+                try {
+                    const arr = JSON.parse(stored);
+                    notificacoesLidas = new Set(arr);
+                } catch(e) { console.warn('Erro ao carregar notificações lidas', e); }
+            }
+        }
+
+        function salvarNotificacoesLidas() {
+            localStorage.setItem('notificacoesLidas', JSON.stringify(Array.from(notificacoesLidas)));
+        }
+
+        function marcarNotificacaoLida(id) {
+            if (id && !notificacoesLidas.has(id)) {
+                notificacoesLidas.add(id);
+                salvarNotificacoesLidas();
+            }
+        }
+
+        function marcarTodasNotificacoesLidas(ids) {
+            let altered = false;
+            ids.forEach(id => {
+                if (id && !notificacoesLidas.has(id)) {
+                    notificacoesLidas.add(id);
+                    altered = true;
+                }
+            });
+            if (altered) salvarNotificacoesLidas();
+        }
+
         // ==================== FUNÇÕES UTILITÁRIAS ====================
         function showLoader() { document.getElementById('globalLoader').classList.add('loading'); }
         function hideLoader() { document.getElementById('globalLoader').classList.remove('loading'); }
@@ -366,7 +401,6 @@
             if (!modal) return;
             lastFocusedElement = document.activeElement;
             modal.classList.add('open');
-            // Foca o primeiro input ou textarea dentro do modal
             setTimeout(() => {
                 const firstInput = modal.querySelector('input, textarea, select');
                 if (firstInput) firstInput.focus();
@@ -393,6 +427,7 @@
         // ==================== AUTENTICAÇÃO ====================
         async function checkSession() {
             document.getElementById('loginOverlay').classList.remove('hidden');
+            carregarNotificacoesLidas();
             try {
                 const { data, error } = await db.from('usuarios').select('*').eq('status', 'Ativo').order('nome');
                 if (error) throw error;
@@ -463,8 +498,7 @@
             document.getElementById('mainContent').style.display = 'flex';
             configurarPermissoes();
             carregarDadosIniciais();
-            // Recarga periódica de produtos (MELHORIA 19)
-            setInterval(carregarProdutos, 5 * 60 * 1000); // a cada 5 minutos
+            setInterval(carregarProdutos, 5 * 60 * 1000);
         }
 
         // ==================== PERMISSÕES E DADOS INICIAIS ====================
@@ -579,7 +613,7 @@
             openModal('modalUsuarioAdmin');
         }
 
-        // ==================== CARREGAMENTO DE DADOS COM CACHE MENSAL (MELHORIA 18) ====================
+        // ==================== CARREGAMENTO DE DADOS COM CACHE MENSAL ====================
         async function carregarDados(force = false) {
             if (!currentUser) return;
             showLoader();
@@ -681,7 +715,6 @@
             const target = document.querySelector(`[data-nav="${view}"]`);
             if (target) { target.classList.add('active'); target.setAttribute('aria-current', 'page'); }
             currentPage = 1;
-            // Limpar busca visualmente (MELHORIA 10)
             const searchInput = document.getElementById('searchInput');
             if (searchInput) searchInput.value = '';
             searchTerm = '';
@@ -713,7 +746,7 @@
             return { bg: 'linear-gradient(90deg, #ef4444, #f97316)', shadow: '0 0 8px rgba(239,68,68,0.3)', iconBg: '#ef4444', iconSvg: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>', motive: 'Hora de acelerar!', motiveColor: '#ef4444' };
         }
 
-        // ==================== RENDERIZAÇÃO DE COMENTÁRIOS (MELHORIA 4: ESCAPE, MELHORIA 7: FOCO) ====================
+        // ==================== RENDERIZAÇÃO DE COMENTÁRIOS ====================
         function renderComentariosHtml(comentarios, clienteId) {
             if (!comentarios || comentarios.length === 0) return '<p style="color:var(--text-muted);">Nenhum comentário registrado.</p>';
             const grupos = {};
@@ -751,7 +784,7 @@
                         html += `<div class="comment-item ${isNew ? 'is-new' : ''}">
                             ${isNew ? '<span class="comment-badge-new">Novo</span>' : ''}
                             ${podeEditar ? `<div class="comment-actions">
-                                <button class="btn-edit" title="Editar" onclick="editarComentario(${c.id_comentario})"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+                                <button class="btn-edit" title="Editar" onclick="editarComentario(${c.id_comentario})"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
                                 <button class="btn-delete" title="Excluir" onclick="abrirModalExcluirComentario(${c.id_comentario})"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 01-2-2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg></button>
                             </div>` : ''}
                             <div class="comment-header">
@@ -768,7 +801,7 @@
             return html;
         }
 
-        // ==================== EDIÇÃO/EXCLUSÃO DE COMENTÁRIOS (MELHORIA 5: event passado) ====================
+        // ==================== EDIÇÃO/EXCLUSÃO DE COMENTÁRIOS ====================
         function editarComentario(id_comentario) {
             const com = clienteAtualParaDetalhes.comentarios;
             com.forEach(c => delete c._editando);
@@ -776,7 +809,6 @@
             if (index < 0) return;
             com[index]._editando = true;
             renderDetalhesClientePage();
-            // MELHORIA 7: Foco no input de edição
             setTimeout(() => {
                 const input = document.getElementById('editInput_' + id_comentario);
                 if (input) input.focus();
@@ -830,7 +862,7 @@
             }
         }
 
-        // ==================== SALVAR COMENTÁRIO (MELHORIA 9: dupla submissão protegida) ====================
+        // ==================== SALVAR COMENTÁRIO ====================
         function atualizarIndicadorDigitacao() {
             const texto = document.getElementById('novoComentario')?.value || '';
             const indicator = document.getElementById('typingIndicator');
@@ -900,7 +932,7 @@
             }
         }
 
-        // ==================== FILTROS E BUSCA (MELHORIA 10: sincronização visual) ====================
+        // ==================== FILTROS E BUSCA ====================
         function buildVendedorOptions() {
             let opts = '<option value="todos" ' + (selectedVendedor === 'todos' ? 'selected' : '') + '>Todos os vendedores</option>';
             todosVendedores.forEach(v => { opts += `<option value="${v.id_usuario}" ${selectedVendedor == v.id_usuario ? 'selected' : ''}>${escapeHtml(v.nome)}</option>`; });
@@ -955,217 +987,68 @@
             return todosProdutos.map(p => `<option value="${escapeHtml(p.nome)}">`).join('');
         }
 
-        // ==================== RENDERIZAÇÃO PRINCIPAL (MELHORIA 17: gráficos sem destruir) ====================
-        function renderFiltrosData(isGerente) {
-            return `<div class="filter-group">
-                ${isGerente ? `<div class="filter-wrapper"><span class="filter-icon"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></span><select class="vendedor-select" id="vendedorSelect" onchange="filtrarPorVendedor(this.value)" aria-label="Filtrar por vendedor">${buildVendedorOptions()}</select></div>` : ''}
-                <div class="filter-wrapper"><span class="filter-icon"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/></svg></span><select class="month-select" id="monthSelect" onchange="changeMonth(this.value)" aria-label="Selecionar mês">${buildMonthOptions()}</select></div>
-                <div class="filter-wrapper"><span class="filter-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/></svg></span><select class="day-select" id="daySelect" onchange="changeDay(this.value)" aria-label="Selecionar dia">${buildDayOptions()}</select></div>
-            </div>`;
-        }
-
-        function classToFormatStatus(status) {
-            const map = { 'Contato Inicial': 'contato-inicial', 'Negociação de Valores': 'negociacao-valores', 'Aguardando Decisão': 'aguardando-decisao', 'Vendido': 'vendido', 'Fechado': 'fechado', 'Perdido': 'perdido', 'Declinado': 'declinado', 'Pós-Venda': 'pos-venda', 'Em Negociação': 'em-atendimento' };
-            return map[status] || 'em-atendimento';
-        }
-
-        function buildNotifications() {
-            const hoje = new Date().toISOString().split('T')[0];
-            const notificacoes = [];
-            const isEmAberto = (s) => ['Em Negociação', 'Contato Inicial', 'Negociação de Valores', 'Aguardando Decisão'].includes(s);
-            const agendadosHoje = allOrcamentos.filter(o => o.data_contato === hoje && isEmAberto(o.status));
-            const atrasados = allOrcamentos.filter(o => o.data_contato && o.data_contato < hoje && isEmAberto(o.status));
-            agendadosHoje.forEach(o => notificacoes.push({ tipo: 'info', texto: `Contato agendado hoje: <strong>${escapeHtml(o.clientes?.nome_cliente || 'Cliente')}</strong>`, id: o.id_orcamento, data: o.hora_contato || 'horário não definido' }));
-            atrasados.forEach(o => notificacoes.push({ tipo: 'critical', texto: `Contato atrasado: <strong>${escapeHtml(o.clientes?.nome_cliente || 'Cliente')}</strong>`, id: o.id_orcamento, data: o.data_contato || 'data não definida' }));
-            if (notificacoes.length === 0) notificacoes.push({ tipo: 'info', texto: 'Nenhum alerta no momento.', id: null, data: '' });
-            return notificacoes;
-        }
-
-        function renderNotificationBadge(count) {
-            const badge = document.getElementById('notificationBadgeCount');
-            if (!badge) return;
-            if (count > 0) { badge.textContent = count > 99 ? '99+' : count; badge.classList.add('visible'); }
-            else { badge.classList.remove('visible'); }
-        }
-
-        function toggleNotifications() {
-            const dropdown = document.getElementById('notificationDropdown');
-            const notificacoes = buildNotifications();
-            if (dropdown.classList.contains('open')) { dropdown.classList.remove('open'); return; }
-            let html = '<div class="notif-header">Central de Alertas</div>';
-            notificacoes.forEach(n => {
-                const dotClass = n.tipo === 'critical' ? 'critical' : n.tipo === 'warning' ? 'warning' : 'info';
-                const onclick = n.id ? `onclick="abrirDetalhesCliente(${n.id}); document.getElementById('notificationDropdown').classList.remove('open');"` : '';
-                html += `<div class="notif-item" ${onclick} style="${n.id ? '' : 'cursor:default;'}"><span class="notif-dot ${dotClass}"></span><div style="flex:1;"><div>${n.texto}</div><div style="font-size:10px; color:var(--text-muted);">${escapeHtml(n.data)}</div></div></div>`;
-            });
-            dropdown.innerHTML = html; dropdown.classList.add('open');
-            document.addEventListener('click', function closeNotif(e) {
-                const btn = document.getElementById('btnNotification');
-                const dd = document.getElementById('notificationDropdown');
-                if (btn && dd && !btn.contains(e.target) && !dd.contains(e.target)) {
-                    dd.classList.remove('open');
-                    document.removeEventListener('click', closeNotif);
-                }
-            }, { once: true });
-        }
-
-        function renderInicio() {
-            const main = document.getElementById('mainContent');
-            const dados = allOrcamentos;
-            const total = dados.length;
-            const fechadosArr = dados.filter(o => o.status === 'Fechado' || o.status === 'Vendido');
-            const fechados = fechadosArr.length;
-            const negociacao = dados.filter(o => ['Em Negociação', 'Contato Inicial', 'Negociação de Valores', 'Aguardando Decisão'].includes(o.status)).length;
-            const valorVendido = fechadosArr.reduce((s, o) => s + parseFloat(o.valor_orcado || 0), 0);
-            const conversao = total ? Math.round((fechados / total) * 100) : 0;
-            const metaAtual = calcularMetaTotal();
-            const percMetaExato = metaAtual ? Math.round((valorVendido / metaAtual) * 100) : 0;
-
-            const isGerente = currentUser.perfil === 'Gerente' || currentUser.perfil === 'Administrador' || currentUser.perfil === 'Admin';
-            const gamified = getGamifiedColors(percMetaExato);
-
-            const headerHtml = `<header class="dashboard-header"><h1>${isGerente ? 'Dashboard Vendas' : 'Dashboard do Vendedor'}</h1><div class="header-controls">${renderFiltrosData(isGerente)}<div class="header-notification-area"><button class="btn-notification" id="btnNotification" onclick="event.stopPropagation(); toggleNotifications();" aria-label="Notificações"><svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg><span class="notification-badge" id="notificationBadgeCount"></span></button></div></div></header>`;
-            const progressHtml = `<div class="gamified-progress-card"><div class="progress-icon" style="background:${gamified.iconBg}; box-shadow:${gamified.shadow};">${gamified.iconSvg}</div><div class="progress-info"><h3>Atingimento de Meta</h3><p class="progress-subtitle">R$ ${valorVendido.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} / R$ ${metaAtual.toLocaleString('pt-BR')}</p></div><div class="progress-bar-outer"><div class="progress-bar-inner-gamified" style="width:${Math.min(100, percMetaExato)}%; background:${gamified.bg}; box-shadow:${gamified.shadow};"><span class="progress-percent">${percMetaExato > 100 ? '100+' : percMetaExato}%</span></div></div><div class="progress-motive-text" style="color:${gamified.motiveColor};">${gamified.motive}</div></div>`;
-            const kpiHtml = `<div class="kpi-card"><div class="kpi-label-row"><span class="kpi-dot blue"></span><span class="kpi-label">Oportunidades Geradas</span></div><div class="kpi-value">${total}</div></div><div class="kpi-card"><div class="kpi-label-row"><span class="kpi-dot orange"></span><span class="kpi-label">Em Tratativa</span></div><div class="kpi-value">${negociacao}</div></div><div class="kpi-card"><div class="kpi-label-row"><span class="kpi-dot green"></span><span class="kpi-label">Taxa de Conversão</span></div><div class="kpi-value">${conversao}%</div></div><div class="kpi-card vendido-highlight"><div class="kpi-label-row"><span class="kpi-dot green"></span><span class="kpi-label">Vendas Fechadas</span></div><div class="kpi-value">R$ ${valorVendido.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</div></div>`;
-
-            // Container do gráfico de rosca (sempre presente)
-            const donutHtml = `<div class="chart-card"><h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg> Aproveitamento</h3><div class="donut-wrapper"><canvas id="donutCanvas" width="200" height="200"></canvas></div><div class="donut-legend"><div style="display:flex; align-items:center; gap:8px;"><span class="legend-color orcados"></span> Orçados <strong>${total}</strong></div><div style="display:flex; align-items:center; gap:8px;"><span class="legend-color fechados"></span> Fechados <strong>${fechados}</strong></div></div></div>`;
-
-            // Container do gráfico de barras (sempre presente para vendedor, com mensagem se vazio)
-            let barChartHtml = '';
-            if (!isGerente) {
-                if (historicoFaturamento.length > 0) {
-                    barChartHtml = `<div class="chart-card"><h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg> Evolução Mensal</h3><div class="bar-chart-wrapper"><canvas id="barChartCanvas"></canvas></div></div>`;
-                } else {
-                    barChartHtml = `<div class="chart-card"><h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg> Evolução Mensal</h3><div style="display:flex; align-items:center; justify-content:center; height:200px; color:var(--text-muted);">Sem dados de faturamento no período.</div></div>`;
-                }
-            }
-
-            // Container do ranking (sempre presente para gerente)
-            let rankingHtml = '';
-            if (isGerente) {
-                if (todosVendedores.length > 0) {
-                    const maxValor = Math.max(1, ...todosVendedores.map(v => dados.filter(o => o.id_usuario === v.id_usuario && (o.status === 'Fechado' || o.status === 'Vendido')).reduce((s, o) => s + parseFloat(o.valor_orcado || 0), 0)));
-                    const ranking = todosVendedores.map(v => {
-                        const vendido = dados.filter(o => o.id_usuario === v.id_usuario && (o.status === 'Fechado' || o.status === 'Vendido')).reduce((s, o) => s + parseFloat(o.valor_orcado || 0), 0);
-                        return { nome: v.nome, vendido, pct: maxValor ? (vendido / maxValor) * 100 : 0 };
-                    }).sort((a, b) => b.vendido - a.vendido);
-                    rankingHtml = `<div class="chart-card"><h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg> Top Vendedores</h3><ul class="ranking-list">${ranking.map((r, i) => `<li class="ranking-item"><span class="ranking-pos">#${i + 1}</span><span class="ranking-nome">${escapeHtml(r.nome)}</span><div class="ranking-bar-outer"><div class="ranking-bar-inner" style="width:${r.pct}%;"><span>${Math.round(r.pct)}%</span></div></div><span class="ranking-valor">R$ ${r.vendido.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}</span></li>`).join('')}</ul></div>`;
-                } else {
-                    rankingHtml = `<div class="chart-card"><h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg> Top Vendedores</h3><div style="display:flex; align-items:center; justify-content:center; height:200px; color:var(--text-muted);">Nenhum vendedor cadastrado.</div></div>`;
-                }
-            }
-
-            // Top 5 produtos (sempre presente)
-            const top5 = {};
-            fechadosArr.forEach(o => { const m = (o.modelo_colchao || 'Sem modelo').trim(); if (!top5[m]) top5[m] = { nome: m, count: 0 }; top5[m].count++; });
-            const top5Ordenado = Object.values(top5).sort((a, b) => b.count - a.count).slice(0, 5);
-            const top5Html = top5Ordenado.map((p, i) => `<li><span class="top5-rank">${i + 1}</span><span style="flex:1;">${escapeHtml(p.nome)}</span></li>`).join('') || '<li style="justify-content:center; color:var(--text-muted);">Nenhuma venda fechada</li>';
-
-            // Tabela da carteira
-            const colVendedor = isGerente ? '<th>Vendedor</th>' : '';
-            const searchTagHtml = searchTerm ? `<span class="search-tag">🔍 "${escapeHtml(searchTerm)}" <span class="remove-search" onclick="clearSearch()" aria-label="Limpar busca">✕</span></span>` : '';
-
-            const tabelaHtml = `<div class="table-card"><div class="table-card-header"><h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/></svg> Carteira de Negociações</h3><div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">${searchTagHtml}<input type="text" class="search-input" placeholder="Buscar cliente..." id="searchInput" oninput="handleSearch()" value="${escapeHtml(searchTerm)}" aria-label="Buscar cliente">
-            <select class="form-input" style="width:auto; padding:8px 16px; border-radius:20px; font-size:var(--font-sm);" id="listFilterSelect" onchange="selectFilter(this.value)" aria-label="Filtrar por status">
-                <option value="todos" ${currentFilter === 'todos' ? 'selected' : ''}>Todos</option>
-                <option value="Contato Inicial" ${currentFilter === 'Contato Inicial' ? 'selected' : ''}>Contato Inicial</option>
-                <option value="Negociação de Valores" ${currentFilter === 'Negociação de Valores' ? 'selected' : ''}>Negociação de Valores</option>
-                <option value="Aguardando Decisão" ${currentFilter === 'Aguardando Decisão' ? 'selected' : ''}>Aguardando Decisão</option>
-                <option value="Vendido" ${currentFilter === 'Vendido' ? 'selected' : ''}>Vendido</option>
-                <option value="Perdido" ${currentFilter === 'Perdido' ? 'selected' : ''}>Perdido</option>
-                <option value="Pós-Venda" ${currentFilter === 'Pós-Venda' ? 'selected' : ''}>Pós-Venda</option>
-            </select>
-            </div></div><table><thead><tr><th>Cliente</th><th>Produto</th>${colVendedor}<th>Status</th><th>Data</th><th>Valor</th></tr></thead><tbody id="tableBody"></tbody></table><div class="pagination" id="paginationContainer"></div></div>`;
-
-            // Montagem da grid de gráficos conforme perfil
-            let chartsRowHtml = '';
-            if (isGerente) {
-                // Gerente: Rosca + Ranking + Top 5
-                chartsRowHtml = `<section class="charts-row">${donutHtml}${rankingHtml}<div class="chart-card"><h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg> Mais Vendidos</h3><ul class="top5-list">${top5Html}</ul></div></section>`;
-            } else {
-                // Vendedor: Rosca + Barras + Top 5
-                const barrasOuVazio = barChartHtml || `<div class="chart-card"><h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg> Evolução Mensal</h3><div style="display:flex; align-items:center; justify-content:center; height:200px; color:var(--text-muted);">Dados insuficientes para o gráfico.</div></div>`;
-                chartsRowHtml = `<section class="charts-row-triplo">${donutHtml}${barrasOuVazio}<div class="chart-card"><h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg> Mais Vendidos</h3><ul class="top5-list">${top5Html}</ul></div></section>`;
-            }
-
-            main.innerHTML = `${headerHtml}${progressHtml}<section class="kpi-row">${kpiHtml}</section>${chartsRowHtml}${tabelaHtml}`;
-
-            // Renderizar gráficos após o DOM estar pronto (usando requestAnimationFrame para garantir)
-            requestAnimationFrame(() => {
-                requestAnimationFrame(() => {
-                    renderizarGraficos(total, fechados);
-                });
-            });
-
-            atualizarTabelaPaginada();
-            setTimeout(() => {
-                const notificacoes = buildNotifications();
-                const alertCount = notificacoes.filter(n => n.id !== null).length;
-                renderNotificationBadge(alertCount);
-            }, 300);
-        }
-
-        // Nova função separada para renderizar os gráficos
+        // ==================== GRÁFICOS COM FALLBACK ====================
         function renderizarGraficos(total, fechados) {
-            // Gráfico de rosca
-            const ctx = document.getElementById('donutCanvas');
-            if (ctx) {
-                const orcadosCount = total - fechados;
-                if (donutChartInstance) {
-                    donutChartInstance.data.datasets[0].data = [orcadosCount, fechados];
-                    donutChartInstance.update();
-                } else {
-                    donutChartInstance = new Chart(ctx, {
-                        type: 'doughnut',
-                        data: {
-                            labels: ['Orçados', 'Fechados'],
-                            datasets: [{
-                                data: [orcadosCount, fechados],
-                                backgroundColor: [
-                                    getComputedStyle(document.body).getPropertyValue('--chart-blue').trim() || '#3b82f6',
-                                    getComputedStyle(document.body).getPropertyValue('--chart-green').trim() || '#10b981'
-                                ],
-                                borderColor: '#fff',
-                                borderWidth: 3,
-                                borderRadius: 6,
-                                hoverBorderWidth: 4
-                            }]
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: true,
-                            cutout: '65%',
-                            plugins: {
-                                legend: { display: false },
-                                tooltip: {
-                                    backgroundColor: getComputedStyle(document.body).getPropertyValue('--tooltip-bg').trim() || '#1e293b',
-                                    titleColor: getComputedStyle(document.body).getPropertyValue('--tooltip-text').trim() || '#f1f5f9',
-                                    bodyColor: getComputedStyle(document.body).getPropertyValue('--tooltip-body').trim() || '#cbd5e1',
-                                    padding: 12,
-                                    cornerRadius: 8,
-                                    callbacks: {
-                                        label: function(ctx) {
-                                            const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
-                                            const pct = total ? Math.round((ctx.raw / total) * 100) : 0;
-                                            return ctx.label + ': ' + ctx.raw + ' (' + pct + '%)';
-                                        }
+            // Tenta renderizar o donut
+            const ctxDonut = document.getElementById('donutCanvas');
+            if (!ctxDonut) {
+                console.error('Canvas donut não encontrado');
+                return false;
+            }
+            const orcadosCount = total - fechados;
+            if (donutChartInstance) {
+                donutChartInstance.data.datasets[0].data = [orcadosCount, fechados];
+                donutChartInstance.update();
+            } else {
+                donutChartInstance = new Chart(ctxDonut, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Orçados', 'Fechados'],
+                        datasets: [{
+                            data: [orcadosCount, fechados],
+                            backgroundColor: [
+                                getComputedStyle(document.body).getPropertyValue('--chart-blue').trim() || '#3b82f6',
+                                getComputedStyle(document.body).getPropertyValue('--chart-green').trim() || '#10b981'
+                            ],
+                            borderColor: '#fff',
+                            borderWidth: 3,
+                            borderRadius: 6,
+                            hoverBorderWidth: 4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        cutout: '65%',
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                backgroundColor: getComputedStyle(document.body).getPropertyValue('--tooltip-bg').trim() || '#1e293b',
+                                titleColor: getComputedStyle(document.body).getPropertyValue('--tooltip-text').trim() || '#f1f5f9',
+                                bodyColor: getComputedStyle(document.body).getPropertyValue('--tooltip-body').trim() || '#cbd5e1',
+                                padding: 12,
+                                cornerRadius: 8,
+                                callbacks: {
+                                    label: function(ctx) {
+                                        const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
+                                        const pct = total ? Math.round((ctx.raw / total) * 100) : 0;
+                                        return ctx.label + ': ' + ctx.raw + ' (' + pct + '%)';
                                     }
                                 }
                             }
                         }
-                    });
-                }
+                    }
+                });
             }
 
-            // Gráfico de barras (evolução mensal) - apenas para vendedor
-            const barCtx = document.getElementById('barChartCanvas');
-            if (barCtx && historicoFaturamento.length > 0) {
+            // Gráfico de barras (apenas se existir o canvas)
+            const ctxBar = document.getElementById('barChartCanvas');
+            if (ctxBar && historicoFaturamento.length > 0) {
                 if (barChartInstance) {
                     barChartInstance.data.datasets[0].data = historicoFaturamento.map(h => h.valor);
                     barChartInstance.update();
                 } else {
-                    barChartInstance = new Chart(barCtx, {
+                    barChartInstance = new Chart(ctxBar, {
                         type: 'bar',
                         data: {
                             labels: historicoFaturamento.map(h => h.mes),
@@ -1216,10 +1099,192 @@
                         }
                     });
                 }
+            } else if (ctxBar && historicoFaturamento.length === 0) {
+                // Caso não haja dados, apenas não renderiza (já tratado no renderInicio)
+            }
+            return true;
+        }
+
+        function tentarRenderizarGraficos(total, fechados, tentativas = 0) {
+            if (tentativas > 5) {
+                console.error('Não foi possível renderizar os gráficos após múltiplas tentativas.');
+                return;
+            }
+            const donutCanvas = document.getElementById('donutCanvas');
+            if (!donutCanvas) {
+                setTimeout(() => tentarRenderizarGraficos(total, fechados, tentativas + 1), 300);
+                return;
+            }
+            renderizarGraficos(total, fechados);
+        }
+
+        // ==================== NOTIFICAÇÕES (COM FILTRO DE LIDAS) ====================
+        function buildNotifications() {
+            const hoje = new Date().toISOString().split('T')[0];
+            const notificacoes = [];
+            const isEmAberto = (s) => ['Em Negociação', 'Contato Inicial', 'Negociação de Valores', 'Aguardando Decisão'].includes(s);
+            const agendadosHoje = allOrcamentos.filter(o => o.data_contato === hoje && isEmAberto(o.status));
+            const atrasados = allOrcamentos.filter(o => o.data_contato && o.data_contato < hoje && isEmAberto(o.status));
+            agendadosHoje.forEach(o => notificacoes.push({ tipo: 'info', texto: `Contato agendado hoje: <strong>${escapeHtml(o.clientes?.nome_cliente || 'Cliente')}</strong>`, id: o.id_orcamento, data: o.hora_contato || 'horário não definido' }));
+            atrasados.forEach(o => notificacoes.push({ tipo: 'critical', texto: `Contato atrasado: <strong>${escapeHtml(o.clientes?.nome_cliente || 'Cliente')}</strong>`, id: o.id_orcamento, data: o.data_contato || 'data não definida' }));
+            
+            // Filtrar notificações já lidas
+            const naoLidas = notificacoes.filter(n => {
+                if (n.id === null) return true; // mensagem sem ID (ex: "nenhum alerta") sempre exibe
+                return !notificacoesLidas.has(n.id);
+            });
+            
+            if (naoLidas.length === 0) naoLidas.push({ tipo: 'info', texto: 'Nenhum alerta no momento.', id: null, data: '' });
+            return naoLidas;
+        }
+
+        function renderNotificationBadge(count) {
+            const badge = document.getElementById('notificationBadgeCount');
+            if (!badge) return;
+            if (count > 0) { badge.textContent = count > 99 ? '99+' : count; badge.classList.add('visible'); }
+            else { badge.classList.remove('visible'); }
+        }
+
+        function toggleNotifications() {
+            const dropdown = document.getElementById('notificationDropdown');
+            const notificacoes = buildNotifications(); // já filtradas
+            const idsParaMarcar = notificacoes.filter(n => n.id !== null).map(n => n.id);
+            if (idsParaMarcar.length > 0) {
+                marcarTodasNotificacoesLidas(idsParaMarcar);
+                // Após marcar, recarregar notificações (já que o buildNotifications agora não trará essas)
+                const novasNotificacoes = buildNotifications();
+                renderizarDropdownNotificacoes(novasNotificacoes);
+                const novoCount = novasNotificacoes.filter(n => n.id !== null).length;
+                renderNotificationBadge(novoCount);
+            } else {
+                renderizarDropdownNotificacoes(notificacoes);
+            }
+            dropdown.classList.toggle('open');
+            if (dropdown.classList.contains('open')) {
+                document.addEventListener('click', function closeNotif(e) {
+                    const btn = document.getElementById('btnNotification');
+                    const dd = document.getElementById('notificationDropdown');
+                    if (btn && dd && !btn.contains(e.target) && !dd.contains(e.target)) {
+                        dd.classList.remove('open');
+                        document.removeEventListener('click', closeNotif);
+                    }
+                }, { once: true });
             }
         }
 
-        // ==================== DEMAIS VIEWS (mantidas com escape adicional) ====================
+        function renderizarDropdownNotificacoes(notificacoes) {
+            const dropdown = document.getElementById('notificationDropdown');
+            let html = '<div class="notif-header">Central de Alertas</div>';
+            notificacoes.forEach(n => {
+                const dotClass = n.tipo === 'critical' ? 'critical' : n.tipo === 'warning' ? 'warning' : 'info';
+                const onclick = n.id ? `onclick="marcarNotificacaoLida(${n.id}); abrirDetalhesCliente(${n.id}); document.getElementById('notificationDropdown').classList.remove('open');"` : '';
+                html += `<div class="notif-item" ${onclick} style="${n.id ? '' : 'cursor:default;'}"><span class="notif-dot ${dotClass}"></span><div style="flex:1;"><div>${n.texto}</div><div style="font-size:10px; color:var(--text-muted);">${escapeHtml(n.data)}</div></div></div>`;
+            });
+            dropdown.innerHTML = html;
+        }
+
+        // ==================== RENDERIZAÇÃO PRINCIPAL ====================
+        function renderFiltrosData(isGerente) {
+            return `<div class="filter-group">
+                ${isGerente ? `<div class="filter-wrapper"><span class="filter-icon"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></span><select class="vendedor-select" id="vendedorSelect" onchange="filtrarPorVendedor(this.value)" aria-label="Filtrar por vendedor">${buildVendedorOptions()}</select></div>` : ''}
+                <div class="filter-wrapper"><span class="filter-icon"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/></svg></span><select class="month-select" id="monthSelect" onchange="changeMonth(this.value)" aria-label="Selecionar mês">${buildMonthOptions()}</select></div>
+                <div class="filter-wrapper"><span class="filter-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/></svg></span><select class="day-select" id="daySelect" onchange="changeDay(this.value)" aria-label="Selecionar dia">${buildDayOptions()}</select></div>
+            </div>`;
+        }
+
+        function classToFormatStatus(status) {
+            const map = { 'Contato Inicial': 'contato-inicial', 'Negociação de Valores': 'negociacao-valores', 'Aguardando Decisão': 'aguardando-decisao', 'Vendido': 'vendido', 'Fechado': 'fechado', 'Perdido': 'perdido', 'Declinado': 'declinado', 'Pós-Venda': 'pos-venda', 'Em Negociação': 'em-atendimento' };
+            return map[status] || 'em-atendimento';
+        }
+
+        function renderInicio() {
+            const main = document.getElementById('mainContent');
+            const dados = allOrcamentos;
+            const total = dados.length;
+            const fechadosArr = dados.filter(o => o.status === 'Fechado' || o.status === 'Vendido');
+            const fechados = fechadosArr.length;
+            const negociacao = dados.filter(o => ['Em Negociação', 'Contato Inicial', 'Negociação de Valores', 'Aguardando Decisão'].includes(o.status)).length;
+            const valorVendido = fechadosArr.reduce((s, o) => s + parseFloat(o.valor_orcado || 0), 0);
+            const conversao = total ? Math.round((fechados / total) * 100) : 0;
+            const metaAtual = calcularMetaTotal();
+            const percMetaExato = metaAtual ? Math.round((valorVendido / metaAtual) * 100) : 0;
+
+            const isGerente = currentUser.perfil === 'Gerente' || currentUser.perfil === 'Administrador' || currentUser.perfil === 'Admin';
+            const gamified = getGamifiedColors(percMetaExato);
+
+            const headerHtml = `<header class="dashboard-header"><h1>${isGerente ? 'Dashboard Vendas' : 'Dashboard do Vendedor'}</h1><div class="header-controls">${renderFiltrosData(isGerente)}<div class="header-notification-area"><button class="btn-notification" id="btnNotification" onclick="event.stopPropagation(); toggleNotifications();" aria-label="Notificações"><svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg><span class="notification-badge" id="notificationBadgeCount"></span></button></div></div></header>`;
+            const progressHtml = `<div class="gamified-progress-card"><div class="progress-icon" style="background:${gamified.iconBg}; box-shadow:${gamified.shadow};">${gamified.iconSvg}</div><div class="progress-info"><h3>Atingimento de Meta</h3><p class="progress-subtitle">R$ ${valorVendido.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} / R$ ${metaAtual.toLocaleString('pt-BR')}</p></div><div class="progress-bar-outer"><div class="progress-bar-inner-gamified" style="width:${Math.min(100, percMetaExato)}%; background:${gamified.bg}; box-shadow:${gamified.shadow};"><span class="progress-percent">${percMetaExato > 100 ? '100+' : percMetaExato}%</span></div></div><div class="progress-motive-text" style="color:${gamified.motiveColor};">${gamified.motive}</div></div>`;
+            const kpiHtml = `<div class="kpi-card"><div class="kpi-label-row"><span class="kpi-dot blue"></span><span class="kpi-label">Oportunidades Geradas</span></div><div class="kpi-value">${total}</div></div><div class="kpi-card"><div class="kpi-label-row"><span class="kpi-dot orange"></span><span class="kpi-label">Em Tratativa</span></div><div class="kpi-value">${negociacao}</div></div><div class="kpi-card"><div class="kpi-label-row"><span class="kpi-dot green"></span><span class="kpi-label">Taxa de Conversão</span></div><div class="kpi-value">${conversao}%</div></div><div class="kpi-card vendido-highlight"><div class="kpi-label-row"><span class="kpi-dot green"></span><span class="kpi-label">Vendas Fechadas</span></div><div class="kpi-value">R$ ${valorVendido.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</div></div>`;
+
+            const donutHtml = `<div class="chart-card"><h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg> Aproveitamento</h3><div class="donut-wrapper"><canvas id="donutCanvas" width="200" height="200"></canvas></div><div class="donut-legend"><div style="display:flex; align-items:center; gap:8px;"><span class="legend-color orcados"></span> Orçados <strong>${total}</strong></div><div style="display:flex; align-items:center; gap:8px;"><span class="legend-color fechados"></span> Fechados <strong>${fechados}</strong></div></div></div>`;
+
+            let barChartHtml = '';
+            if (!isGerente) {
+                if (historicoFaturamento.length > 0) {
+                    barChartHtml = `<div class="chart-card"><h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg> Evolução Mensal</h3><div class="bar-chart-wrapper"><canvas id="barChartCanvas"></canvas></div></div>`;
+                } else {
+                    barChartHtml = `<div class="chart-card"><h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg> Evolução Mensal</h3><div style="display:flex; align-items:center; justify-content:center; height:200px; color:var(--text-muted);">Sem dados de faturamento no período.</div></div>`;
+                }
+            }
+
+            let rankingHtml = '';
+            if (isGerente) {
+                if (todosVendedores.length > 0) {
+                    const maxValor = Math.max(1, ...todosVendedores.map(v => dados.filter(o => o.id_usuario === v.id_usuario && (o.status === 'Fechado' || o.status === 'Vendido')).reduce((s, o) => s + parseFloat(o.valor_orcado || 0), 0)));
+                    const ranking = todosVendedores.map(v => {
+                        const vendido = dados.filter(o => o.id_usuario === v.id_usuario && (o.status === 'Fechado' || o.status === 'Vendido')).reduce((s, o) => s + parseFloat(o.valor_orcado || 0), 0);
+                        return { nome: v.nome, vendido, pct: maxValor ? (vendido / maxValor) * 100 : 0 };
+                    }).sort((a, b) => b.vendido - a.vendido);
+                    rankingHtml = `<div class="chart-card"><h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg> Top Vendedores</h3><ul class="ranking-list">${ranking.map((r, i) => `<li class="ranking-item"><span class="ranking-pos">#${i + 1}</span><span class="ranking-nome">${escapeHtml(r.nome)}</span><div class="ranking-bar-outer"><div class="ranking-bar-inner" style="width:${r.pct}%;"><span>${Math.round(r.pct)}%</span></div></div><span class="ranking-valor">R$ ${r.vendido.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}</span></li>`).join('')}</ul></div>`;
+                } else {
+                    rankingHtml = `<div class="chart-card"><h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg> Top Vendedores</h3><div style="display:flex; align-items:center; justify-content:center; height:200px; color:var(--text-muted);">Nenhum vendedor cadastrado.</div></div>`;
+                }
+            }
+
+            const top5 = {};
+            fechadosArr.forEach(o => { const m = (o.modelo_colchao || 'Sem modelo').trim(); if (!top5[m]) top5[m] = { nome: m, count: 0 }; top5[m].count++; });
+            const top5Ordenado = Object.values(top5).sort((a, b) => b.count - a.count).slice(0, 5);
+            const top5Html = top5Ordenado.map((p, i) => `<li><span class="top5-rank">${i + 1}</span><span style="flex:1;">${escapeHtml(p.nome)}</span></li>`).join('') || '<li style="justify-content:center; color:var(--text-muted);">Nenhuma venda fechada</li>';
+
+            const colVendedor = isGerente ? '<th>Vendedor</th>' : '';
+            const searchTagHtml = searchTerm ? `<span class="search-tag">🔍 "${escapeHtml(searchTerm)}" <span class="remove-search" onclick="clearSearch()" aria-label="Limpar busca">✕</span></span>` : '';
+
+            const tabelaHtml = `<div class="table-card"><div class="table-card-header"><h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/></svg> Carteira de Negociações</h3><div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">${searchTagHtml}<input type="text" class="search-input" placeholder="Buscar cliente..." id="searchInput" oninput="handleSearch()" value="${escapeHtml(searchTerm)}" aria-label="Buscar cliente">
+            <select class="form-input" style="width:auto; padding:8px 16px; border-radius:20px; font-size:var(--font-sm);" id="listFilterSelect" onchange="selectFilter(this.value)" aria-label="Filtrar por status">
+                <option value="todos" ${currentFilter === 'todos' ? 'selected' : ''}>Todos</option>
+                <option value="Contato Inicial" ${currentFilter === 'Contato Inicial' ? 'selected' : ''}>Contato Inicial</option>
+                <option value="Negociação de Valores" ${currentFilter === 'Negociação de Valores' ? 'selected' : ''}>Negociação de Valores</option>
+                <option value="Aguardando Decisão" ${currentFilter === 'Aguardando Decisão' ? 'selected' : ''}>Aguardando Decisão</option>
+                <option value="Vendido" ${currentFilter === 'Vendido' ? 'selected' : ''}>Vendido</option>
+                <option value="Perdido" ${currentFilter === 'Perdido' ? 'selected' : ''}>Perdido</option>
+                <option value="Pós-Venda" ${currentFilter === 'Pós-Venda' ? 'selected' : ''}>Pós-Venda</option>
+            </select>
+            </div></div><table><thead><tr><th>Cliente</th><th>Produto</th>${colVendedor}<th>Status</th><th>Data</th><th>Valor</th></tr></thead><tbody id="tableBody"></tbody>赶</div><div class="pagination" id="paginationContainer"></div></div>`;
+
+            let chartsRowHtml = '';
+            if (isGerente) {
+                chartsRowHtml = `<section class="charts-row">${donutHtml}${rankingHtml}<div class="chart-card"><h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg> Mais Vendidos</h3><ul class="top5-list">${top5Html}</ul></div></section>`;
+            } else {
+                const barrasOuVazio = barChartHtml || `<div class="chart-card"><h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg> Evolução Mensal</h3><div style="display:flex; align-items:center; justify-content:center; height:200px; color:var(--text-muted);">Dados insuficientes para o gráfico.</div></div>`;
+                chartsRowHtml = `<section class="charts-row-triplo">${donutHtml}${barrasOuVazio}<div class="chart-card"><h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg> Mais Vendidos</h3><ul class="top5-list">${top5Html}</ul></div></section>`;
+            }
+
+            main.innerHTML = `${headerHtml}${progressHtml}<section class="kpi-row">${kpiHtml}</section>${chartsRowHtml}${tabelaHtml}`;
+
+            // Tentar renderizar gráficos com fallback
+            requestAnimationFrame(() => {
+                tentarRenderizarGraficos(total, fechados);
+            });
+
+            atualizarTabelaPaginada();
+            setTimeout(() => {
+                const notificacoes = buildNotifications();
+                const alertCount = notificacoes.filter(n => n.id !== null).length;
+                renderNotificationBadge(alertCount);
+            }, 300);
+        }
+
+        // ==================== DEMAIS VIEWS ====================
         function renderAgendaDia() {
             const hoje = new Date().toISOString().split('T')[0];
             const agendados = allOrcamentos.filter(o => { return o.data_contato === hoje && ['Em Negociação', 'Contato Inicial', 'Negociação de Valores', 'Aguardando Decisão'].includes(o.status); });
@@ -1238,7 +1303,6 @@
                 html += '</tbody></table></div>';
             }
             document.getElementById('mainContent').innerHTML = html;
-            // Adiciona listeners de clique para as linhas da agenda
             document.querySelectorAll('.table-card tbody tr.clickable-row').forEach(row => {
                 row.addEventListener('click', function() {
                     const id = this.getAttribute('data-id');
@@ -1261,7 +1325,6 @@
             });
             html += '</tbody></table></div>';
             document.getElementById('mainContent').innerHTML = html;
-            // Adiciona listeners de clique para as linhas da lista de clientes
             document.querySelectorAll('.table-card tbody tr.clickable-row').forEach(row => {
                 row.addEventListener('click', function() {
                     const id = this.getAttribute('data-id');
@@ -1281,7 +1344,7 @@
             document.getElementById('mainContent').innerHTML = html;
         }
 
-        // ==================== DETALHES DO CLIENTE (MELHORIA 4, 6 e 14) ====================
+        // ==================== DETALHES DO CLIENTE (COM LOGS E CONDIÇÃO DE BOTÕES) ====================
         async function abrirDetalhesCliente(id) {
             console.log('abrirDetalhesCliente chamado com id:', id);
             if (!id) {
@@ -1405,7 +1468,7 @@
 
         function voltarDetalhes() { currentView = previousView; navigateTo(currentView); }
 
-        // ==================== METAS (MELHORIA 14: atualiza currentUser) ====================
+        // ==================== METAS ====================
         function abrirModalMeta(id, nome, valorAtual) {
             idMetaEdicao = id;
             document.getElementById('inputMetaValor').value = 'R$ ' + valorAtual.toLocaleString('pt-BR');
@@ -1429,7 +1492,6 @@
                 const vendIndex = todosVendedores.findIndex(v => v.id_usuario === idMetaEdicao);
                 if (vendIndex > -1) todosVendedores[vendIndex].meta_mensal = Math.round(valor);
 
-                // MELHORIA 14: Atualiza a meta do usuário logado se ele mesmo for editado
                 if (idMetaEdicao === currentUser.id_usuario) {
                     currentUser.meta_mensal = Math.round(valor);
                 }
@@ -1443,7 +1505,7 @@
             }
         }
 
-        // ==================== NOVO ORÇAMENTO (MELHORIA 11: datalist) ====================
+        // ==================== NOVO ORÇAMENTO ====================
         function formatCurrency(value) { let num = value.replace(/\D/g, ''); num = (parseInt(num) || 0).toString(); return 'R$ ' + parseInt(num.slice(0, -2) || '0').toLocaleString('pt-BR') + ',' + num.slice(-2).padStart(2, '0'); }
         function parseCurrency(value) { return parseFloat(value.replace(/[^\d,]/g, '').replace(',', '.')) || 0; }
 
@@ -1478,7 +1540,6 @@
 
         function renderNovoOrcamentoPage() {
             const main = document.getElementById('mainContent');
-            // Recarrega produtos ao abrir (MELHORIA 19)
             carregarProdutos();
 
             main.innerHTML = `<header class="dashboard-header"><div style="display:flex; align-items:center; gap:16px;"><button class="btn-voltar" onclick="navigateTo(previousView)">← Voltar</button><h1>Novo Orçamento</h1></div></header>
@@ -1534,9 +1595,24 @@
             } catch (error) { console.error(error); document.getElementById('modalMsg').innerHTML = `<span style="color: #ef4444; font-size: 13px; font-weight: 600;">${escapeHtml(error.message)}</span>`; btn.classList.remove('saving'); btn.disabled = false; btn.querySelector('.btn-text').textContent = 'Salvar Orçamento'; salvandoOrcamento = false; }
         }
 
-        // ==================== AÇÕES: PERDA E FECHAMENTO (MELHORIA 5: event passado) ====================
-        function abrirMotivoPerda(id) { idOrcamentoParaPerder = id; openModal('modalMotivoPerda'); document.getElementById('motivoPerda').value = ''; }
-        function abrirConfirmaFechamento(id) { idOrcamentoParaPerder = null; clienteAtualParaDetalhes = allOrcamentos.find(o => o.id_orcamento == id); openModal('modalConfirmaFechamento'); document.getElementById('btnConfirmaFechar').onclick = function() { acaoDetalhes(id, 'Vendido'); closeModal('modalConfirmaFechamento'); }; }
+        // ==================== AÇÕES: PERDA E FECHAMENTO (COM LOGS) ====================
+        function abrirMotivoPerda(id) { 
+            console.log('abrirMotivoPerda chamado para id:', id);
+            idOrcamentoParaPerder = id; 
+            openModal('modalMotivoPerda'); 
+            document.getElementById('motivoPerda').value = ''; 
+        }
+
+        function abrirConfirmaFechamento(id) { 
+            console.log('abrirConfirmaFechamento chamado para id:', id);
+            idOrcamentoParaPerder = null; 
+            clienteAtualParaDetalhes = allOrcamentos.find(o => o.id_orcamento == id); 
+            openModal('modalConfirmaFechamento'); 
+            document.getElementById('btnConfirmaFechar').onclick = function() { 
+                acaoDetalhes(id, 'Vendido'); 
+                closeModal('modalConfirmaFechamento'); 
+            }; 
+        }
 
         async function confirmarPerda(event) {
             event.preventDefault();
@@ -1554,7 +1630,10 @@
                 const { error: err2 } = await db.from('comentarios').insert([{ id_orcamento: idOrcamentoParaPerder, texto: motivo, tipo: 'Perda', autor: currentUser.nome }]);
                 if (err2) throw new Error(err2.message);
                 closeModal('modalMotivoPerda');
-                await abrirDetalhesCliente(clienteAtualParaDetalhes?.id_orcamento || idOrcamentoParaPerder);
+                // Garantir que clienteAtualParaDetalhes esteja definido antes de usar
+                const idCliente = clienteAtualParaDetalhes?.id_orcamento || idOrcamentoParaPerder;
+                console.log('confirmarPerda: usando idCliente', idCliente);
+                await abrirDetalhesCliente(idCliente);
                 carregarDados(true);
             } catch (e) { console.error(e); errMotivo.textContent = 'Erro ao salvar: ' + e.message; }
             finally { isConfirmingPerda = false; }
@@ -1652,7 +1731,7 @@
             html += `</tbody></table></div>`; main.innerHTML = html;
         }
 
-        // ==================== TABELA PAGINADA (REFATORADA COM DELEGAÇÃO DE EVENTOS) ====================
+        // ==================== TABELA PAGINADA ====================
         function atualizarTabelaPaginada() {
             const tbody = document.getElementById('tableBody');
             const pagination = document.getElementById('paginationContainer');
@@ -1677,7 +1756,6 @@
 
             const isGerente = currentUser.perfil === 'Gerente' || currentUser.perfil === 'Administrador' || currentUser.perfil === 'Admin';
 
-            // Limpa o tbody e adiciona linhas com data-id e listeners
             tbody.innerHTML = '';
             if (pagina.length === 0) {
                 tbody.innerHTML = `<tr><td colspan="${isGerente ? '6' : '5'}" style="text-align:center; padding:24px;">Nenhum registro.</td></tr>`;
@@ -1708,7 +1786,6 @@
                 });
             }
 
-            // Paginação
             pagination.innerHTML = `
                 <button onclick="changePage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>Anterior</button>
                 <span>Página ${currentPage} de ${totalPages}</span>
@@ -1723,7 +1800,6 @@
             document.body.classList.toggle('dark');
             localStorage.setItem('theme', document.body.classList.contains('dark') ? 'dark' : 'light');
             
-            // Destruir gráficos existentes para forçar recriação com novas cores
             if (donutChartInstance) {
                 donutChartInstance.destroy();
                 donutChartInstance = null;
@@ -1733,7 +1809,6 @@
                 barChartInstance = null;
             }
             
-            // Recarregar a view atual para aplicar as novas cores
             if (currentView === 'inicio') renderInicio();
             else if (currentView === 'admin_inicio') renderAdminInicio(document.getElementById('mainContent'));
             else if (currentView === 'admin_usuarios') renderAdminUsuarios(document.getElementById('mainContent'));
@@ -1750,7 +1825,7 @@
             }
         });
 
-        // Mobile hamburger (MELHORIA 13)
+        // Mobile hamburger
         document.getElementById('hamburgerBtn').addEventListener('click', () => {
             const sidebar = document.getElementById('sidebar');
             const overlay = document.getElementById('sidebarOverlay');
