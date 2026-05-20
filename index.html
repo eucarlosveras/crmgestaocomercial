@@ -224,8 +224,6 @@
 </head>
 <body>
     <div id="globalLoader"><div class="loader-fill"></div></div>
-    
-    <!-- Toast Container para Feedbacks visuais -->
     <div id="toast-container"></div>
 
     <button class="hamburger" id="hamburgerBtn" aria-label="Abrir menu">
@@ -307,7 +305,12 @@
             <h3 id="modalUsuarioTitle">Novo Usuário</h3>
             <label for="adminModNome">Nome Completo</label><input type="text" id="adminModNome" placeholder="Ex: João da Silva">
             <label for="adminModEmail">E-mail (Opcional)</label><input type="email" id="adminModEmail" placeholder="vendedor@loja.com.br">
-            <div class="modal-row">
+            
+            <label for="adminModLoja">Loja Base</label>
+            <select id="adminModLoja" class="form-input" style="margin-bottom:4px;">
+            </select>
+            
+            <div class="modal-row" style="margin-top: 8px;">
                 <div><label for="adminModPerfil">Perfil do Sistema</label><select id="adminModPerfil"><option value="Vendedor">Vendedor</option><option value="Gerente">Gerente</option><option value="Administrador">Administrador (TI)</option></select></div>
                 <div><label for="adminModStatus">Status de Acesso</label><select id="adminModStatus"><option value="Ativo">Ativo</option><option value="Inativo">Inativo</option></select></div>
             </div>
@@ -336,7 +339,6 @@
         const META_PADRAO = 50000;
         const ITEMS_PER_PAGE = 10;
 
-        // Extração de Constantes para Melhor Prática
         const STATUS = {
             CONTATO_INICIAL: 'Contato Inicial',
             NEGOCIACAO: 'Negociação de Valores',
@@ -349,8 +351,12 @@
             EM_NEGOCIACAO: 'Em Negociação'
         };
 
+        let mapStatusUUID = []; 
+        let mapInteresseUUID = [];
+        let listaLojas = [];
+
         let currentUser = null;
-        let kpisMensais = []; // Usado apenas para os gráficos e contagens do dashboard
+        let kpisMensais = []; 
         let todosVendedores = [];
         let todosUsuarios = [];
         let todosProdutos = [];
@@ -377,108 +383,39 @@
 
         let usuariosParaLogin = [];
         let perfilSelecionadoLogin = null;
-
         let isSavingComment = false;
         let isConfirmingPerda = false;
         let notificacoesLidas = new Set();
 
-        // Substituindo alert() por Toasts em UI
         function showToast(message, type = 'info') {
             const container = document.getElementById('toast-container');
             const toast = document.createElement('div');
             toast.className = `toast ${type}`;
-            
             let icon = '';
             if(type === 'success') icon = '<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>';
             if(type === 'error') icon = '<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>';
             if(type === 'info') icon = '<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>';
-
             toast.innerHTML = `${icon} <span>${message}</span>`;
             container.appendChild(toast);
-            
             requestAnimationFrame(() => toast.classList.add('show'));
-            
-            setTimeout(() => {
-                toast.classList.remove('show');
-                setTimeout(() => toast.remove(), 300);
-            }, 3000);
+            setTimeout(() => { toast.classList.remove('show'); setTimeout(() => toast.remove(), 300); }, 3000);
         }
 
-        function carregarNotificacoesLidas() {
-            const stored = localStorage.getItem('notificacoesLidas');
-            if (stored) {
-                try {
-                    const arr = JSON.parse(stored);
-                    notificacoesLidas = new Set(arr);
-                } catch(e) { }
-            }
-        }
-
-        function salvarNotificacoesLidas() {
-            localStorage.setItem('notificacoesLidas', JSON.stringify(Array.from(notificacoesLidas)));
-        }
-
-        function marcarNotificacaoLida(id) {
-            if (id && !notificacoesLidas.has(id)) {
-                notificacoesLidas.add(id);
-                salvarNotificacoesLidas();
-            }
-        }
-
-        function marcarTodasNotificacoesLidas(ids) {
-            let altered = false;
-            ids.forEach(id => {
-                if (id && !notificacoesLidas.has(id)) {
-                    notificacoesLidas.add(id);
-                    altered = true;
-                }
-            });
-            if (altered) salvarNotificacoesLidas();
-        }
-
+        function carregarNotificacoesLidas() { const stored = localStorage.getItem('notificacoesLidas'); if (stored) { try { notificacoesLidas = new Set(JSON.parse(stored)); } catch(e) { } } }
+        function salvarNotificacoesLidas() { localStorage.setItem('notificacoesLidas', JSON.stringify(Array.from(notificacoesLidas))); }
+        function marcarTodasNotificacoesLidas(ids) { let altered = false; ids.forEach(id => { if (id && !notificacoesLidas.has(id)) { notificacoesLidas.add(id); altered = true; } }); if (altered) salvarNotificacoesLidas(); }
         function showLoader() { document.getElementById('globalLoader').classList.add('loading'); }
         function hideLoader() { document.getElementById('globalLoader').classList.remove('loading'); }
-
-        function escapeHtml(str) {
-            if (!str) return '';
-            const div = document.createElement('div');
-            div.textContent = str;
-            return div.innerHTML;
-        }
-
+        function escapeHtml(str) { if (!str) return ''; const div = document.createElement('div'); div.textContent = str; return div.innerHTML; }
         function timeAgo(dateString) { const now = new Date(); const date = new Date(dateString); const diff = Math.floor((now - date) / (1000 * 60 * 60 * 24)); if (diff === 0) return 'Hoje'; if (diff === 1) return 'Ontem'; return 'há ' + diff + ' dias'; }
         function getDateLabel(dateStr) { const d = new Date(dateStr); const hoje = new Date(); const ontem = new Date(hoje); ontem.setDate(hoje.getDate() - 1); if (d.toDateString() === hoje.toDateString()) return 'Hoje'; if (d.toDateString() === ontem.toDateString()) return 'Ontem'; return d.toLocaleDateString('pt-BR'); }
         function getUltimaVisita(id) { const ts = localStorage.getItem('ultima_visita_' + id); return ts ? parseInt(ts) : 0; }
         function setUltimaVisita(id) { localStorage.setItem('ultima_visita_' + id, Date.now().toString()); }
-        
-        function isCommentNew(commentDateStr, clienteId) {
-            const commentTime = new Date(commentDateStr).getTime();
-            const lastVisit = getUltimaVisita(clienteId);
-            if (lastVisit === 0) return false;
-            return commentTime > lastVisit;
-        }
+        function isCommentNew(commentDateStr, clienteId) { const commentTime = new Date(commentDateStr).getTime(); const lastVisit = getUltimaVisita(clienteId); if (lastVisit === 0) return false; return commentTime > lastVisit; }
 
         let lastFocusedElement = null;
-
-        function openModal(modalId) {
-            const modal = document.getElementById(modalId);
-            if (!modal) return;
-            lastFocusedElement = document.activeElement;
-            modal.classList.add('open');
-            setTimeout(() => {
-                const firstInput = modal.querySelector('input, textarea, select');
-                if (firstInput) firstInput.focus();
-            }, 100);
-        }
-
-        function closeModal(modalId) {
-            const modal = document.getElementById(modalId);
-            if (!modal) return;
-            modal.classList.remove('open');
-            if (lastFocusedElement && document.body.contains(lastFocusedElement)) {
-                lastFocusedElement.focus();
-            }
-        }
+        function openModal(modalId) { const modal = document.getElementById(modalId); if (!modal) return; lastFocusedElement = document.activeElement; modal.classList.add('open'); setTimeout(() => { const firstInput = modal.querySelector('input, textarea, select'); if (firstInput) firstInput.focus(); }, 100); }
+        function closeModal(modalId) { const modal = document.getElementById(modalId); if (!modal) return; modal.classList.remove('open'); if (lastFocusedElement && document.body.contains(lastFocusedElement)) { lastFocusedElement.focus(); } }
 
         async function checkSession() {
             document.getElementById('loginOverlay').classList.remove('hidden');
@@ -487,63 +424,37 @@
                 const { data, error } = await db.from('usuarios').select('*').eq('status', 'Ativo').order('nome');
                 if (error) throw error;
                 usuariosParaLogin = data || [];
-            } catch (e) {
-                document.getElementById('loginMsg').innerHTML = 'Erro de conexão com o banco de dados.';
-            }
+            } catch (e) { document.getElementById('loginMsg').innerHTML = 'Erro de conexão com o banco de dados.'; }
         }
 
         function selecionarPerfil(perfil, btnElement) {
             perfilSelecionadoLogin = perfil;
-            document.querySelectorAll('.segment-btn').forEach(b => b.classList.remove('active'));
-            btnElement.classList.add('active');
-
-            const wrapper = document.getElementById('usuarioSelectWrapper');
-            const select = document.getElementById('loginUsuarioSelect');
+            document.querySelectorAll('.segment-btn').forEach(b => b.classList.remove('active')); btnElement.classList.add('active');
+            const wrapper = document.getElementById('usuarioSelectWrapper'); const select = document.getElementById('loginUsuarioSelect');
             select.innerHTML = '<option value="">Selecione seu nome...</option>';
-
             const filtrados = usuariosParaLogin.filter(u => u.perfil === perfil || (perfil === 'Administrador' && u.perfil === 'Admin'));
-
-            if (filtrados.length === 0) {
-                select.innerHTML = `<option value="">Nenhum ${perfil} cadastrado</option>`;
-            } else {
-                filtrados.forEach(u => {
-                    select.innerHTML += `<option value="${u.id_usuario}">${escapeHtml(u.nome)}</option>`;
-                });
-            }
-
-            wrapper.classList.add('visible');
-            document.getElementById('loginMsg').innerHTML = '';
+            if (filtrados.length === 0) { select.innerHTML = `<option value="">Nenhum ${perfil} cadastrado</option>`; } 
+            else { filtrados.forEach(u => { select.innerHTML += `<option value="${u.id_usuario}">${escapeHtml(u.nome)}</option>`; }); }
+            wrapper.classList.add('visible'); document.getElementById('loginMsg').innerHTML = '';
         }
 
         async function handleLogin() {
             const btn = document.getElementById('btnLogin');
             if (btn.disabled) return;
-
             const idSelecionado = document.getElementById('loginUsuarioSelect').value;
             const msg = document.getElementById('loginMsg');
-
-            if (!perfilSelecionadoLogin) {
-                msg.textContent = 'Passo 1: Escolha um perfil acima.'; return;
-            }
-            if (!idSelecionado) {
-                msg.textContent = 'Passo 2: Selecione o seu nome na lista.'; return;
-            }
-
+            if (!perfilSelecionadoLogin) { msg.textContent = 'Passo 1: Escolha um perfil acima.'; return; }
+            if (!idSelecionado) { msg.textContent = 'Passo 2: Selecione o seu nome na lista.'; return; }
             btn.classList.add('loading'); btn.disabled = true; msg.innerHTML = '';
 
             try {
                 const userFound = usuariosParaLogin.find(u => u.id_usuario === idSelecionado);
                 if (!userFound) throw new Error("Usuário inválido.");
-
                 currentUser = userFound;
                 document.getElementById('loginOverlay').classList.add('hidden');
                 initAppAfterLogin();
-
-            } catch (err) {
-                msg.innerHTML = `<span style="color: #ef4444; font-size: 13px; font-weight: 600;">Erro ao entrar no sistema.</span>`;
-            } finally {
-                btn.classList.remove('loading'); btn.disabled = false;
-            }
+            } catch (err) { msg.innerHTML = `<span style="color: #ef4444; font-size: 13px; font-weight: 600;">Erro ao entrar no sistema.</span>`; } 
+            finally { btn.classList.remove('loading'); btn.disabled = false; }
         }
 
         function initAppAfterLogin() {
@@ -564,12 +475,8 @@
 
             try {
                 const { data: all } = await db.from('usuarios').select('*').order('nome');
-                todosUsuarios = all || [];
-                todosVendedores = todosUsuarios.filter(u => u.perfil === 'Vendedor');
-            } catch (e) {
-                todosUsuarios = [];
-                todosVendedores = [];
-            }
+                todosUsuarios = all || []; todosVendedores = todosUsuarios.filter(u => u.perfil === 'Vendedor');
+            } catch (e) { todosUsuarios = []; todosVendedores = []; }
 
             const hora = new Date().getHours();
             let saudacao = hora < 12 ? 'Bom dia' : hora < 18 ? 'Boa tarde' : 'Boa noite';
@@ -580,30 +487,34 @@
         }
 
         async function carregarDadosIniciais() {
+            showLoader();
+            const [resStatus, resInteresse, resLojas] = await Promise.all([
+                db.from('status_orcamento').select('*'),
+                db.from('niveis_interesse').select('*'),
+                db.from('lojas').select('*')
+            ]);
+            mapStatusUUID = resStatus.data || [];
+            mapInteresseUUID = resInteresse.data || [];
+            listaLojas = resLojas.data || [];
+
             await carregarProdutos();
             await carregarKpisEDashboard();
             await carregarHistoricoFaturamento();
+            
             if (currentUser.perfil === 'Administrador' || currentUser.perfil === 'Admin') navigateTo('admin_inicio');
             else navigateTo('inicio');
+            hideLoader();
         }
 
-        async function logout() {
-            currentUser = null;
-            location.reload();
-        }
+        async function logout() { currentUser = null; location.reload(); }
 
-        // Nova função para buscar dados agregados do mês para os KPIs e gráficos (Mais leve)
         async function carregarKpisEDashboard() {
             if (!currentUser) return;
-            showLoader();
             try {
-                let query = db.from('orcamentos').select('id_orcamento, status, valor_orcado, id_usuario, modelo_colchao, data_contato, hora_contato, clientes(nome_cliente, whatsapp)');
+                let query = db.from('orcamentos').select('id_orcamento, valor_orcado, id_usuario, data_contato, hora_contato, clientes(nome_cliente, whatsapp), status_orcamento(nome)');
 
-                if (currentUser.perfil === 'Vendedor' && !currentUser.id_usuario.includes('mock')) {
-                    query = query.eq('id_usuario', currentUser.id_usuario);
-                } else if (selectedVendedor !== 'todos') {
-                    query = query.eq('id_usuario', selectedVendedor);
-                }
+                if (currentUser.perfil === 'Vendedor') query = query.eq('id_usuario', currentUser.id_usuario);
+                else if (selectedVendedor !== 'todos') query = query.eq('id_usuario', selectedVendedor);
 
                 if (currentDay) {
                     const start = new Date(currentYear, currentMonth - 1, currentDay).toISOString();
@@ -617,20 +528,18 @@
 
                 const { data, error } = await query;
                 if (!error) {
-                    kpisMensais = data || [];
+                    kpisMensais = (data || []).map(o => ({
+                        ...o,
+                        status: o.status_orcamento ? o.status_orcamento.nome : STATUS.CONTATO_INICIAL
+                    }));
                 }
-            } catch(e) {
-                kpisMensais = [];
-            }
+            } catch(e) { kpisMensais = []; }
             
             atualizarBadge();
             const notificacoes = buildNotifications();
-            const alertCount = notificacoes.filter(n => n.id !== null).length;
-            renderNotificationBadge(alertCount);
-            hideLoader();
+            renderNotificationBadge(notificacoes.filter(n => n.id !== null).length);
         }
 
-        // Tabela usando Paginação Real do Supabase e Filtros SQL (.ilike, .eq)
         async function atualizarTabelaPaginadaServer() {
             const tbody = document.getElementById('tableBody');
             const pagination = document.getElementById('paginationContainer');
@@ -640,43 +549,24 @@
             tbody.innerHTML = `<tr><td colspan="${isGerente ? '6' : '5'}" style="text-align:center; padding:24px;">Carregando dados...</td></tr>`;
 
             try {
-                let query = db.from('orcamentos').select('*, clientes!inner(nome_cliente, whatsapp), usuarios(nome)', { count: 'exact' });
+                let query = db.from('orcamentos').select('*, clientes!inner(nome_cliente, whatsapp), usuarios(nome), status_orcamento(nome)', { count: 'exact' });
 
-                // Filtro de Vendedor
-                if (currentUser.perfil === 'Vendedor' && !currentUser.id_usuario.includes('mock')) {
-                    query = query.eq('id_usuario', currentUser.id_usuario);
-                } else if (selectedVendedor !== 'todos') {
-                    query = query.eq('id_usuario', selectedVendedor);
-                }
+                if (currentUser.perfil === 'Vendedor') query = query.eq('id_usuario', currentUser.id_usuario);
+                else if (selectedVendedor !== 'todos') query = query.eq('id_usuario', selectedVendedor);
 
-                // Filtro de Data
-                if (currentDay) {
-                    const start = new Date(currentYear, currentMonth - 1, currentDay).toISOString();
-                    const end = new Date(currentYear, currentMonth - 1, currentDay, 23, 59, 59).toISOString();
-                    query = query.gte('data_criacao', start).lte('data_criacao', end);
-                } else if (currentMonth && currentYear) {
-                    const startDate = new Date(currentYear, currentMonth - 1, 1).toISOString();
-                    const endDate = new Date(currentYear, currentMonth, 0, 23, 59, 59).toISOString();
-                    query = query.gte('data_criacao', startDate).lte('data_criacao', endDate);
-                }
+                if (searchTerm) query = query.ilike('clientes.nome_cliente', `%${searchTerm}%`);
 
-                // Filtro de Busca (Substitui o array.filter do front-end)
-                if (searchTerm) {
-                    query = query.ilike('clientes.nome_cliente', `%${searchTerm}%`);
-                }
-
-                // Filtro de Status
                 if (currentFilter !== 'todos') {
-                    if (currentFilter === STATUS.VENDIDO) query = query.in('status', [STATUS.FECHADO, STATUS.VENDIDO]);
-                    else if (currentFilter === STATUS.PERDIDO) query = query.in('status', [STATUS.DECLINADO, STATUS.PERDIDO]);
+                    let searchNomes = [currentFilter];
+                    if (currentFilter === STATUS.VENDIDO) searchNomes = [STATUS.FECHADO, STATUS.VENDIDO];
+                    else if (currentFilter === STATUS.PERDIDO) searchNomes = [STATUS.DECLINADO, STATUS.PERDIDO];
                     else if (['Contato Inicial', 'Negociação de Valores', 'Aguardando Decisão'].includes(currentFilter)) {
-                        query = query.in('status', [currentFilter, STATUS.EM_NEGOCIACAO]);
-                    } else {
-                        query = query.eq('status', currentFilter);
+                        searchNomes = [currentFilter, STATUS.EM_NEGOCIACAO];
                     }
+                    const uuidsPermitidos = mapStatusUUID.filter(s => searchNomes.includes(s.nome)).map(s => s.id_status);
+                    if(uuidsPermitidos.length > 0) query = query.in('id_status', uuidsPermitidos);
                 }
 
-                // Range para Paginação Real
                 const from = (currentPage - 1) * ITEMS_PER_PAGE;
                 const to = from + ITEMS_PER_PAGE - 1;
                 query = query.range(from, to).order('data_criacao', { ascending: false });
@@ -685,54 +575,39 @@
                 if (error) throw error;
 
                 const totalPages = Math.ceil(count / ITEMS_PER_PAGE) || 1;
-                if (currentPage > totalPages && totalPages > 0) {
-                    currentPage = totalPages;
-                    return atualizarTabelaPaginadaServer();
-                }
+                if (currentPage > totalPages && totalPages > 0) { currentPage = totalPages; return atualizarTabelaPaginadaServer(); }
 
                 tbody.innerHTML = '';
-                if (!pagina || pagina.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="${isGerente ? '6' : '5'}" style="text-align:center; padding:24px;">Nenhum registro encontrado.</td></tr>`;
-                } else {
+                if (!pagina || pagina.length === 0) { tbody.innerHTML = `<tr><td colspan="${isGerente ? '6' : '5'}" style="text-align:center; padding:24px;">Nenhum registro encontrado.</td></tr>`; } 
+                else {
                     pagina.forEach(o => {
-                        const tr = document.createElement('tr');
-                        tr.className = 'clickable-row';
-                        tr.setAttribute('data-id', o.id_orcamento);
-                        tr.style.cursor = 'pointer';
+                        const tr = document.createElement('tr'); tr.className = 'clickable-row'; tr.setAttribute('data-id', o.id_orcamento); tr.style.cursor = 'pointer';
                         tr.addEventListener('click', function() { abrirDetalhesCliente(o.id_orcamento); });
-
                         const nome = o.clientes?.nome_cliente || 'Cliente';
                         const dataRelativa = timeAgo(o.data_criacao);
                         const dataCompleta = o.data_criacao ? new Date(o.data_criacao).toLocaleDateString('pt-BR') : '-';
-                        const status = o.status || STATUS.CONTATO_INICIAL;
+                        const statusTexto = o.status_orcamento ? o.status_orcamento.nome : STATUS.CONTATO_INICIAL; 
 
                         tr.innerHTML = `
                             <td><span class="client-name">${escapeHtml(nome)}</span></td>
                             <td>${escapeHtml(o.modelo_colchao || '-')}</td>
                             ${isGerente ? `<td>${escapeHtml(o.usuarios?.nome || '-')}</td>` : ''}
-                            <td><span class="status-tag ${classToFormatStatus(status)}">${escapeHtml(status)}</span></td>
+                            <td><span class="status-tag ${classToFormatStatus(statusTexto)}">${escapeHtml(statusTexto)}</span></td>
                             <td title="${dataCompleta}">${dataRelativa}</td>
                             <td style="font-weight:700;">R$ ${parseFloat(o.valor_orcado || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
                         `;
                         tbody.appendChild(tr);
                     });
                 }
-
-                pagination.innerHTML = `
-                    <button onclick="changePage(${currentPage - 1})" ${currentPage <= 1 ? 'disabled' : ''}>Anterior</button>
-                    <span>Página ${currentPage} de ${totalPages}</span>
-                    <button onclick="changePage(${currentPage + 1})" ${currentPage >= totalPages ? 'disabled' : ''}>Próximo</button>
-                `;
-            } catch (error) {
-                tbody.innerHTML = `<tr><td colspan="${isGerente ? '6' : '5'}" style="text-align:center; padding:24px; color:#ef4444;">Erro ao carregar dados da tabela.</td></tr>`;
-            }
+                pagination.innerHTML = `<button onclick="changePage(${currentPage - 1})" ${currentPage <= 1 ? 'disabled' : ''}>Anterior</button><span>Página ${currentPage} de ${totalPages}</span><button onclick="changePage(${currentPage + 1})" ${currentPage >= totalPages ? 'disabled' : ''}>Próximo</button>`;
+            } catch (error) { tbody.innerHTML = `<tr><td colspan="${isGerente ? '6' : '5'}" style="text-align:center; padding:24px; color:#ef4444;">Erro ao carregar dados da tabela.</td></tr>`; }
         }
 
         async function exportarCSV() {
             showToast('Gerando relatório...', 'info');
             try {
-                let query = db.from('orcamentos').select('*, clientes!inner(nome_cliente, whatsapp), usuarios(nome)');
-                if (currentUser.perfil === 'Vendedor' && !currentUser.id_usuario.includes('mock')) query = query.eq('id_usuario', currentUser.id_usuario);
+                let query = db.from('orcamentos').select('*, clientes!inner(nome_cliente, whatsapp), usuarios(nome), status_orcamento(nome)');
+                if (currentUser.perfil === 'Vendedor') query = query.eq('id_usuario', currentUser.id_usuario);
                 else if (selectedVendedor !== 'todos') query = query.eq('id_usuario', selectedVendedor);
                 
                 if (currentMonth && currentYear && !currentDay) {
@@ -752,7 +627,7 @@
                     const whats = `"${row.clientes?.whatsapp || ''}"`;
                     const prod = `"${(row.modelo_colchao || '').replace(/"/g, '""')}"`;
                     const valor = row.valor_orcado || 0;
-                    const status = row.status || '';
+                    const status = row.status_orcamento ? row.status_orcamento.nome : '';
                     const vendedor = `"${(row.usuarios?.nome || '').replace(/"/g, '""')}"`;
                     csv += `${dataFormatada},${nome},${whats},${prod},${valor},${status},${vendedor}\n`;
                 });
@@ -767,19 +642,19 @@
                 link.click();
                 document.body.removeChild(link);
                 showToast('Relatório exportado com sucesso!', 'success');
-            } catch(e) {
-                showToast('Erro ao exportar relatório.', 'error');
-            }
+            } catch(e) { showToast('Erro ao exportar relatório.', 'error'); }
         }
 
         async function salvarUsuarioAdmin() {
             const nome = document.getElementById('adminModNome').value.trim();
             const email = document.getElementById('adminModEmail').value.trim();
+            const idLoja = document.getElementById('adminModLoja').value; 
             const perfil = document.getElementById('adminModPerfil').value;
             const status = document.getElementById('adminModStatus').value;
             const err = document.getElementById('errAdminUsuario');
 
             if (!nome) { err.textContent = 'Preencha o nome do usuário.'; return; }
+            if (!idLoja) { err.textContent = 'Selecione a loja base do vendedor.'; return; }
 
             const btn = document.getElementById('btnSalvarUsuarioAdmin');
             btn.classList.add('saving'); btn.disabled = true; err.textContent = '';
@@ -787,29 +662,21 @@
             try {
                 if (idUsuarioEmEdicao) {
                     const { error } = await db.from('usuarios').update({
-                        nome: nome, email: email, perfil: perfil, status: status
+                        nome: nome, email: email, id_loja: idLoja, perfil: perfil, status: status
                     }).eq('id_usuario', idUsuarioEmEdicao);
                     if (error) throw new Error(error.message);
                 } else {
                     const { error } = await db.from('usuarios').insert([{
-                        nome: nome, email: email, perfil: perfil, status: status, meta_mensal: META_PADRAO
+                        nome: nome, email: email, id_loja: idLoja, perfil: perfil, status: status, meta_mensal: META_PADRAO
                     }]);
                     if (error) throw new Error(error.message);
                 }
 
                 const { data: usuarios } = await db.from('usuarios').select('*').order('nome');
-                todosUsuarios = usuarios || [];
-                todosVendedores = todosUsuarios.filter(u => u.perfil === 'Vendedor');
-
-                closeModal('modalUsuarioAdmin');
-                renderAdminUsuarios(document.getElementById('mainContent'));
-                showToast('Usuário salvo com sucesso.', 'success');
-            } catch (e) {
-                err.textContent = 'Erro: ' + e.message;
-            } finally {
-                btn.classList.remove('saving');
-                btn.disabled = false;
-            }
+                todosUsuarios = usuarios || []; todosVendedores = todosUsuarios.filter(u => u.perfil === 'Vendedor');
+                closeModal('modalUsuarioAdmin'); renderAdminUsuarios(document.getElementById('mainContent')); showToast('Usuário salvo!', 'success');
+            } catch (e) { err.textContent = 'Erro: ' + e.message; } 
+            finally { btn.classList.remove('saving'); btn.disabled = false; }
         }
 
         function abrirModalUsuarioAdmin(id = null) {
@@ -818,20 +685,21 @@
             const title = document.getElementById('modalUsuarioTitle');
             const nomeInput = document.getElementById('adminModNome');
             const emailInput = document.getElementById('adminModEmail');
+            const lojaSel = document.getElementById('adminModLoja');
             const perfilSel = document.getElementById('adminModPerfil');
             const statusSel = document.getElementById('adminModStatus');
+
+            lojaSel.innerHTML = '<option value="">Selecione a loja...</option>';
+            listaLojas.forEach(l => { lojaSel.innerHTML += `<option value="${l.id_loja}">${escapeHtml(l.nome_loja)}</option>`; });
 
             if (id) {
                 const user = todosUsuarios.find(u => u.id_usuario === id);
                 title.textContent = 'Editar Usuário';
-                nomeInput.value = user.nome || '';
-                emailInput.value = user.email || '';
-                perfilSel.value = user.perfil || 'Vendedor';
-                statusSel.value = user.status || 'Ativo';
+                nomeInput.value = user.nome || ''; emailInput.value = user.email || '';
+                lojaSel.value = user.id_loja || ''; perfilSel.value = user.perfil || 'Vendedor'; statusSel.value = user.status || 'Ativo';
             } else {
                 title.textContent = 'Novo Usuário';
-                nomeInput.value = ''; emailInput.value = '';
-                perfilSel.value = 'Vendedor'; statusSel.value = 'Ativo';
+                nomeInput.value = ''; emailInput.value = ''; lojaSel.value = ''; perfilSel.value = 'Vendedor'; statusSel.value = 'Ativo';
             }
             openModal('modalUsuarioAdmin');
         }
@@ -846,9 +714,12 @@
         }
 
         async function carregarHistoricoFaturamento() {
-            if (!currentUser || currentUser.perfil !== 'Vendedor' || String(currentUser.id_usuario).includes('mock')) { historicoFaturamento = []; return; }
+            if (!currentUser || currentUser.perfil !== 'Vendedor') { historicoFaturamento = []; return; }
             const hoje = new Date(); historicoFaturamento = [];
             try {
+                // Buscamos os UUIDs que representam vendas fechadas
+                const uuidsFechados = mapStatusUUID.filter(s => [STATUS.FECHADO, STATUS.VENDIDO].includes(s.nome)).map(s => s.id_status);
+
                 for (let i = 5; i >= 0; i--) {
                     const mes = new Date(hoje.getFullYear(), hoje.getMonth() - i, 1); 
                     const ano = mes.getFullYear(); 
@@ -856,13 +727,17 @@
                     const startDate = new Date(ano, mesNum - 1, 1).toISOString(); 
                     const endDate = new Date(ano, mesNum, 0, 23, 59, 59).toISOString();
                     
-                    const { data } = await db.from('orcamentos')
+                    let query = db.from('orcamentos')
                         .select('valor_orcado')
                         .eq('id_usuario', currentUser.id_usuario)
-                        .in('status', [STATUS.FECHADO, STATUS.VENDIDO])
                         .gte('data_criacao', startDate)
                         .lte('data_criacao', endDate);
-                        
+                    
+                    if(uuidsFechados.length > 0) {
+                        query = query.in('id_status', uuidsFechados);
+                    }
+
+                    const { data } = await query;
                     const total = (data || []).reduce((s, o) => s + parseFloat(o.valor_orcado || 0), 0);
                     const nomeMes = mes.toLocaleDateString('pt-BR', { month: 'short' }).replace('.', ''); 
                     const anoAbrev = ano.toString().slice(-2);
@@ -895,7 +770,7 @@
             else if (view === 'admin_inicio') renderAdminInicio(document.getElementById('mainContent'));
             else if (view === 'admin_usuarios') renderAdminUsuarios(document.getElementById('mainContent'));
             else if (view === 'agenda_dia') {
-                await carregarKpisEDashboard(); // Garante dados mais novos para a agenda
+                await carregarKpisEDashboard();
                 renderAgendaDia();
             }
             else if (view === 'clientes') {
@@ -1029,11 +904,8 @@
                 closeModal('modalExcluirComentario');
                 showToast('Comentário excluído', 'success');
                 renderDetalhesClientePage();
-            } catch (e) {
-                showToast('Erro ao excluir comentário.', 'error');
-            } finally {
-                btn.classList.remove('saving'); btn.disabled = false;
-            }
+            } catch (e) { showToast('Erro ao excluir comentário.', 'error'); } 
+            finally { btn.classList.remove('saving'); btn.disabled = false; }
         }
 
         function atualizarIndicadorDigitacao() {
@@ -1057,15 +929,12 @@
             const btn = document.getElementById('btnSalvarTimeline');
             btn.querySelector('.btn-spinner').style.display = 'inline-block';
             btn.querySelector('.btn-text').textContent = 'Salvando...';
-            btn.disabled = true;
-            msg.textContent = '';
+            btn.disabled = true; msg.textContent = '';
 
             try {
                 const { error } = await db.from('comentarios').insert([{
                     id_orcamento: clienteAtualParaDetalhes.id_orcamento,
-                    texto: texto,
-                    tipo: 'Comentário',
-                    autor: currentUser.nome
+                    texto: texto, tipo: 'Comentário', autor: currentUser.nome
                 }]);
 
                 if (error) throw error;
@@ -1074,8 +943,7 @@
                 showToast('Histórico registrado!', 'success');
                 await abrirDetalhesCliente(clienteAtualParaDetalhes.id_orcamento);
             } catch (e) {
-                msg.textContent = 'Erro ao salvar: ' + e.message;
-                msg.style.color = '#ef4444';
+                msg.textContent = 'Erro ao salvar: ' + e.message; msg.style.color = '#ef4444';
             } finally {
                 isSavingComment = false;
                 btn.querySelector('.btn-spinner').style.display = 'none';
@@ -1092,9 +960,7 @@
                 if (error) throw error;
                 
                 if (loader) {
-                    loader.textContent = '✓ Salvo';
-                    loader.style.color = 'var(--accent-green)';
-                    loader.classList.add('visible');
+                    loader.textContent = '✓ Salvo'; loader.style.color = 'var(--accent-green)'; loader.classList.add('visible');
                     setTimeout(() => loader.classList.remove('visible'), 2500);
                 }
                 if (clienteAtualParaDetalhes && String(clienteAtualParaDetalhes.id_orcamento) === String(id)) {
@@ -1102,9 +968,7 @@
                 }
             } catch (e) {
                 if (loader) {
-                    loader.textContent = 'Erro ao salvar';
-                    loader.style.color = '#ef4444';
-                    loader.classList.add('visible');
+                    loader.textContent = 'Erro ao salvar'; loader.style.color = '#ef4444'; loader.classList.add('visible');
                     setTimeout(() => loader.classList.remove('visible'), 3000);
                 }
             }
@@ -1151,7 +1015,6 @@
             searchTerm = document.getElementById('searchInput')?.value || '';
             currentPage = 1;
             atualizarTabelaPaginadaServer();
-            // atualiza tags de pesquisa
             const tagContainer = document.getElementById('searchTagContainer');
             if (tagContainer) {
                 tagContainer.innerHTML = searchTerm ? `<span class="search-tag">🔍 "${escapeHtml(searchTerm)}" <span class="remove-search" onclick="clearSearch()" aria-label="Limpar busca">✕</span></span>` : '';
@@ -1201,17 +1064,14 @@
                     }]
                 },
                 options: {
-                    responsive: true,
-                    maintainAspectRatio: true,
-                    cutout: '65%',
+                    responsive: true, maintainAspectRatio: true, cutout: '65%',
                     plugins: {
                         legend: { display: false },
                         tooltip: {
                             backgroundColor: getComputedStyle(document.body).getPropertyValue('--tooltip-bg').trim() || '#1e293b',
                             titleColor: getComputedStyle(document.body).getPropertyValue('--tooltip-text').trim() || '#f1f5f9',
                             bodyColor: getComputedStyle(document.body).getPropertyValue('--tooltip-body').trim() || '#cbd5e1',
-                            padding: 12,
-                            cornerRadius: 8,
+                            padding: 12, cornerRadius: 8,
                             callbacks: {
                                 label: function(ctx) {
                                     const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
@@ -1235,22 +1095,18 @@
                             label: 'Vendido',
                             data: historicoFaturamento.map(h => h.valor),
                             backgroundColor: getComputedStyle(document.body).getPropertyValue('--chart-green').trim() || '#10b981',
-                            borderRadius: 6,
-                            borderSkipped: false,
-                            maxBarThickness: 40
+                            borderRadius: 6, borderSkipped: false, maxBarThickness: 40
                         }]
                     },
                     options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
+                        responsive: true, maintainAspectRatio: false,
                         plugins: {
                             legend: { display: false },
                             tooltip: {
                                 backgroundColor: getComputedStyle(document.body).getPropertyValue('--tooltip-bg').trim() || '#1e293b',
                                 titleColor: getComputedStyle(document.body).getPropertyValue('--tooltip-text').trim() || '#f1f5f9',
                                 bodyColor: getComputedStyle(document.body).getPropertyValue('--tooltip-body').trim() || '#cbd5e1',
-                                padding: 10,
-                                cornerRadius: 6,
+                                padding: 10, cornerRadius: 6,
                                 callbacks: {
                                     label: function(ctx) { return 'R$ ' + ctx.raw.toLocaleString('pt-BR', { minimumFractionDigits: 2 }); }
                                 }
@@ -1261,15 +1117,11 @@
                                 beginAtZero: true,
                                 ticks: {
                                     callback: function(value) { return value >= 1000 ? 'R$ ' + (value / 1000).toFixed(0) + 'k' : 'R$ ' + value; },
-                                    font: { size: 10, family: 'Inter' },
-                                    maxTicksLimit: 5
+                                    font: { size: 10, family: 'Inter' }, maxTicksLimit: 5
                                 },
                                 grid: { color: '#e2e8f0' }
                             },
-                            x: {
-                                grid: { display: false },
-                                ticks: { font: { size: 10, family: 'Inter' }, maxRotation: 45, minRotation: 0 }
-                            }
+                            x: { grid: { display: false }, ticks: { font: { size: 10, family: 'Inter' }, maxRotation: 45, minRotation: 0 } }
                         }
                     }
                 });
@@ -1280,10 +1132,7 @@
         function tentarRenderizarGraficos(total, fechados, tentativas = 0) {
             if (tentativas > 5) return;
             const donutCanvas = document.getElementById('donutCanvas');
-            if (!donutCanvas) {
-                setTimeout(() => tentarRenderizarGraficos(total, fechados, tentativas + 1), 300);
-                return;
-            }
+            if (!donutCanvas) { setTimeout(() => tentarRenderizarGraficos(total, fechados, tentativas + 1), 300); return; }
             renderizarGraficos(total, fechados);
         }
 
@@ -1296,11 +1145,7 @@
             agendadosHoje.forEach(o => notificacoes.push({ tipo: 'info', texto: `Contato agendado hoje: <strong>${escapeHtml(o.clientes?.nome_cliente || 'Cliente')}</strong>`, id: o.id_orcamento, data: o.hora_contato || 'horário não definido' }));
             atrasados.forEach(o => notificacoes.push({ tipo: 'critical', texto: `Contato atrasado: <strong>${escapeHtml(o.clientes?.nome_cliente || 'Cliente')}</strong>`, id: o.id_orcamento, data: o.data_contato || 'data não definida' }));
             
-            const naoLidas = notificacoes.filter(n => {
-                if (n.id === null) return true;
-                return !notificacoesLidas.has(n.id);
-            });
-            
+            const naoLidas = notificacoes.filter(n => { if (n.id === null) return true; return !notificacoesLidas.has(n.id); });
             if (naoLidas.length === 0) naoLidas.push({ tipo: 'info', texto: 'Nenhum alerta no momento.', id: null, data: '' });
             return naoLidas;
         }
@@ -1320,8 +1165,7 @@
                 marcarTodasNotificacoesLidas(idsParaMarcar);
                 const novasNotificacoes = buildNotifications();
                 renderizarDropdownNotificacoes(novasNotificacoes);
-                const novoCount = novasNotificacoes.filter(n => n.id !== null).length;
-                renderNotificationBadge(novoCount);
+                renderNotificationBadge(novasNotificacoes.filter(n => n.id !== null).length);
             } else {
                 renderizarDropdownNotificacoes(notificacoes);
             }
@@ -1331,8 +1175,7 @@
                     const btn = document.getElementById('btnNotification');
                     const dd = document.getElementById('notificationDropdown');
                     if (btn && dd && !btn.contains(e.target) && !dd.contains(e.target)) {
-                        dd.classList.remove('open');
-                        document.removeEventListener('click', closeNotif);
+                        dd.classList.remove('open'); document.removeEventListener('click', closeNotif);
                     }
                 }, { once: true });
             }
@@ -1431,10 +1274,7 @@
 
             main.innerHTML = `${headerHtml}${progressHtml}<section class="kpi-row">${kpiHtml}</section>${chartsRowHtml}${tabelaHtml}`;
 
-            requestAnimationFrame(() => {
-                tentarRenderizarGraficos(total, fechados);
-            });
-
+            requestAnimationFrame(() => { tentarRenderizarGraficos(total, fechados); });
             atualizarTabelaPaginadaServer();
         }
 
@@ -1456,12 +1296,7 @@
                 html += '</tbody></table></div>';
             }
             document.getElementById('mainContent').innerHTML = html;
-            document.querySelectorAll('.table-card tbody tr.clickable-row').forEach(row => {
-                row.addEventListener('click', function() {
-                    const id = this.getAttribute('data-id');
-                    if (id) abrirDetalhesCliente(id);
-                });
-            });
+            document.querySelectorAll('.table-card tbody tr.clickable-row').forEach(row => { row.addEventListener('click', function() { const id = this.getAttribute('data-id'); if (id) abrirDetalhesCliente(id); }); });
         }
 
         function renderClientes() {
@@ -1477,12 +1312,7 @@
             });
             html += '</tbody></table></div>';
             document.getElementById('mainContent').innerHTML = html;
-            document.querySelectorAll('.table-card tbody tr.clickable-row').forEach(row => {
-                row.addEventListener('click', function() {
-                    const id = this.getAttribute('data-id');
-                    if (id) abrirDetalhesCliente(id);
-                });
-            });
+            document.querySelectorAll('.table-card tbody tr.clickable-row').forEach(row => { row.addEventListener('click', function() { const id = this.getAttribute('data-id'); if (id) abrirDetalhesCliente(id); }); });
         }
 
         function renderMetas() {
@@ -1491,49 +1321,37 @@
                 const meta = getMetaVendedor(v.id_usuario);
                 html += `<tr><td><strong>${escapeHtml(v.nome)}</strong></td><td>R$ ${meta.toLocaleString('pt-BR')}</td><td><button class="btn-salvar-modal" style="padding:6px 12px; font-size:11px; background:var(--card-bg); border:1px solid var(--border-light); color:var(--text-primary);" onclick="abrirModalMeta('${v.id_usuario}', '${escapeHtml(v.nome)}', ${meta})">Editar Meta</button></td></tr>`;
             });
-            html += '</tbody></table></div>';
-            document.getElementById('mainContent').innerHTML = html;
+            html += '</tbody></table></div>'; document.getElementById('mainContent').innerHTML = html;
         }
 
         async function abrirDetalhesCliente(id) {
-            if (!id) {
-                showToast('Erro: Cliente ou Orçamento não encontrado.', 'error');
-                return;
-            }
-
+            if (!id) { showToast('Erro: Orçamento não encontrado.', 'error'); return; }
             try {
                 showLoader();
                 const { data, error } = await db.from('orcamentos')
-                    .select('*, clientes(nome_cliente, whatsapp), usuarios(nome)')
-                    .eq('id_orcamento', id)
-                    .single();
+                    .select('*, clientes(nome_cliente, whatsapp), usuarios(nome), status_orcamento(nome), niveis_interesse(nome)')
+                    .eq('id_orcamento', id).single();
                     
-                if (error || !data) throw new Error('Orçamento não encontrado no banco.');
+                if (error || !data) throw new Error('Orçamento não encontrado.');
+                
+                // Mapeia para o frontend ler os textos
+                data.status = data.status_orcamento ? data.status_orcamento.nome : STATUS.CONTATO_INICIAL;
+                data.interesse = data.niveis_interesse ? data.niveis_interesse.nome : null;
+
                 clienteAtualParaDetalhes = data;
                 
-                const { data: comentarios, error: erroComent } = await db.from('comentarios')
-                    .select('*')
-                    .eq('id_orcamento', id)
-                    .order('data_criacao', { ascending: true });
-                    
+                const { data: comentarios, error: erroComent } = await db.from('comentarios').select('*').eq('id_orcamento', id).order('data_criacao', { ascending: true });
                 if (erroComent) throw erroComent;
                 clienteAtualParaDetalhes.comentarios = comentarios || [];
                 
-                previousView = currentView;
-                currentView = 'detalhes_cliente';
-                setUltimaVisita(id);
-                renderDetalhesClientePage();
-            } catch (e) {
-                showToast('O registro deste cliente pode ter sido removido ou você não tem acesso.', 'error');
-            } finally {
-                hideLoader();
-            }
+                previousView = currentView; currentView = 'detalhes_cliente'; setUltimaVisita(id); renderDetalhesClientePage();
+            } catch (e) { showToast('Erro ao carregar cliente.', 'error'); } 
+            finally { hideLoader(); }
         }
 
         function renderDetalhesClientePage() {
             if (!clienteAtualParaDetalhes) { navigateTo(previousView); return; }
-            const orc = clienteAtualParaDetalhes;
-            const id = orc.id_orcamento;
+            const orc = clienteAtualParaDetalhes; const id = orc.id_orcamento;
             const isGerente = currentUser.perfil === 'Gerente' || currentUser.perfil === 'Administrador' || currentUser.perfil === 'Admin';
             const main = document.getElementById('mainContent');
             let actionsHtml = '';
@@ -1544,8 +1362,7 @@
                 actionsHtml += `<button class="btn-danger-ghost" onclick="abrirMotivoPerda('${orc.id_orcamento}')">Perder Venda</button>`;
             }
             
-            const comentarios = clienteAtualParaDetalhes.comentarios || [];
-            const comentariosHtml = renderComentariosHtml(comentarios, id);
+            const comentarios = clienteAtualParaDetalhes.comentarios || []; const comentariosHtml = renderComentariosHtml(comentarios, id);
             const statusClass = classToFormatStatus(orc.status);
             const interesse = escapeHtml(orc.interesse || '-');
             const interesseColor = orc.interesse === 'Alta' ? '#10b981' : orc.interesse === 'Média' ? '#f59e0b' : orc.interesse === 'Baixa' ? '#ef4444' : '#94a3b8';
@@ -1572,10 +1389,7 @@
                         ${isGerente ? `<div class="info-row"><span class="info-label">Vendedor</span><span class="info-value">${escapeHtml(orc.usuarios?.nome || '-')}</span></div>` : ''}
                     </div>
                     <div class="info-group">
-                        <label style="display:flex; align-items:center; font-size: var(--font-xs); font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px;">
-                            Observações Fixas
-                            <span id="obsSalvaLoader" class="auto-save-indicator">✓ Salvo</span>
-                        </label>
+                        <label style="display:flex; align-items:center; font-size: var(--font-xs); font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px;">Observações Fixas<span id="obsSalvaLoader" class="auto-save-indicator">✓ Salvo</span></label>
                         <textarea id="obsFixaCliente" class="form-input" rows="3" placeholder="Ex: Cliente prefere contato de manhã..." onblur="salvarObservacaoFixa('${orc.id_orcamento}')">${escapeHtml(orc.observacoes || '')}</textarea>
                     </div>
                     <a href="https://wa.me/55${whats}" target="_blank" class="btn-whatsapp-full"><svg class="btn-whatsapp-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg> Iniciar Conversa WhatsApp</a>
@@ -1608,70 +1422,38 @@
         }
 
         function abrirModalMeta(id, nome, valorAtual) {
-            idMetaEdicao = id;
-            document.getElementById('inputMetaValor').value = 'R$ ' + valorAtual.toLocaleString('pt-BR');
-            document.getElementById('errMeta').textContent = '';
-            openModal('modalEditarMeta');
-            document.getElementById('inputMetaValor').focus();
+            idMetaEdicao = id; document.getElementById('inputMetaValor').value = 'R$ ' + valorAtual.toLocaleString('pt-BR');
+            document.getElementById('errMeta').textContent = ''; openModal('modalEditarMeta'); document.getElementById('inputMetaValor').focus();
         }
 
         async function salvarNovaMeta() {
-            const raw = document.getElementById('inputMetaValor').value.replace(/[^\d,]/g, '').replace(',', '.');
-            const valor = parseFloat(raw);
+            const raw = document.getElementById('inputMetaValor').value.replace(/[^\d,]/g, '').replace(',', '.'); const valor = parseFloat(raw);
             if (!valor || valor <= 0) { document.getElementById('errMeta').textContent = 'Valor inválido.'; return; }
-            const btn = document.getElementById('btnSalvarMeta');
-            btn.classList.add('saving'); btn.disabled = true;
+            const btn = document.getElementById('btnSalvarMeta'); btn.classList.add('saving'); btn.disabled = true;
             try {
                 const { error } = await db.from('usuarios').update({ meta_mensal: Math.round(valor) }).eq('id_usuario', idMetaEdicao);
                 if (error) throw new Error(error.message);
-
-                const userIndex = todosUsuarios.findIndex(u => u.id_usuario === idMetaEdicao);
-                if (userIndex > -1) todosUsuarios[userIndex].meta_mensal = Math.round(valor);
-                const vendIndex = todosVendedores.findIndex(v => v.id_usuario === idMetaEdicao);
-                if (vendIndex > -1) todosVendedores[vendIndex].meta_mensal = Math.round(valor);
-
-                if (idMetaEdicao === currentUser.id_usuario) {
-                    currentUser.meta_mensal = Math.round(valor);
-                }
-
-                closeModal('modalEditarMeta');
-                showToast('Meta atualizada com sucesso', 'success');
-                renderMetas();
-            } catch (e) {
-                document.getElementById('errMeta').textContent = 'Erro ao salvar: ' + e.message;
-                btn.classList.remove('saving'); btn.disabled = false;
-            }
+                const userIndex = todosUsuarios.findIndex(u => u.id_usuario === idMetaEdicao); if (userIndex > -1) todosUsuarios[userIndex].meta_mensal = Math.round(valor);
+                const vendIndex = todosVendedores.findIndex(v => v.id_usuario === idMetaEdicao); if (vendIndex > -1) todosVendedores[vendIndex].meta_mensal = Math.round(valor);
+                if (idMetaEdicao === currentUser.id_usuario) currentUser.meta_mensal = Math.round(valor);
+                closeModal('modalEditarMeta'); showToast('Meta atualizada com sucesso', 'success'); renderMetas();
+            } catch (e) { document.getElementById('errMeta').textContent = 'Erro ao salvar: ' + e.message; } 
+            finally { btn.classList.remove('saving'); btn.disabled = false; }
         }
 
         function formatCurrency(value) { let num = value.replace(/\D/g, ''); num = (parseInt(num) || 0).toString(); return 'R$ ' + parseInt(num.slice(0, -2) || '0').toLocaleString('pt-BR') + ',' + num.slice(-2).padStart(2, '0'); }
         function parseCurrency(value) { return parseFloat(value.replace(/[^\d,]/g, '').replace(',', '.')) || 0; }
 
         function adicionarProdutoRow() {
-            const container = document.getElementById('produtosContainer');
-            const datalistHtml = `<datalist id="produtosList">${buildProdutosOptionsDatalist()}</datalist>`;
-            const row = document.createElement('div');
-            row.className = 'produto-row';
+            const container = document.getElementById('produtosContainer'); const datalistHtml = `<datalist id="produtosList">${buildProdutosOptionsDatalist()}</datalist>`;
+            const row = document.createElement('div'); row.className = 'produto-row';
             row.innerHTML = `<input type="text" class="form-input prod-nome" list="produtosList" placeholder="Nome do produto" style="cursor: pointer;">${datalistHtml}<input type="text" class="form-input prod-valor" placeholder="R$ 0,00" inputmode="decimal" oninput="this.value = formatCurrency(this.value); calcTotalModal();"><button type="button" class="btn-remove-item" onclick="removerProdutoRow(this)" aria-label="Remover item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg></button>`;
-            container.appendChild(row);
-            atualizarBotoesLixeira();
+            container.appendChild(row); atualizarBotoesLixeira();
         }
 
         function removerProdutoRow(btn) { btn.parentElement.remove(); calcTotalModal(); atualizarBotoesLixeira(); }
-
-        function atualizarBotoesLixeira() {
-            const container = document.getElementById('produtosContainer');
-            const btns = container.querySelectorAll('.btn-remove-item');
-            if (btns.length === 1) { btns[0].style.opacity = '0.3'; btns[0].style.pointerEvents = 'none'; }
-            else { btns.forEach(b => { b.style.opacity = '1'; b.style.pointerEvents = 'auto'; }); }
-        }
-
-        function calcTotalModal() {
-            const inputs = document.querySelectorAll('.prod-valor');
-            let total = 0;
-            inputs.forEach(inp => { total += parseCurrency(inp.value); });
-            document.getElementById('displayTotalModal').textContent = 'R$ ' + total.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
-            return total;
-        }
+        function atualizarBotoesLixeira() { const btns = document.getElementById('produtosContainer').querySelectorAll('.btn-remove-item'); if (btns.length === 1) { btns[0].style.opacity = '0.3'; btns[0].style.pointerEvents = 'none'; } else { btns.forEach(b => { b.style.opacity = '1'; b.style.pointerEvents = 'auto'; }); } }
+        function calcTotalModal() { let total = 0; document.querySelectorAll('.prod-valor').forEach(inp => { total += parseCurrency(inp.value); }); document.getElementById('displayTotalModal').textContent = 'R$ ' + total.toLocaleString('pt-BR', { minimumFractionDigits: 2 }); return total; }
 
         function abrirNovoOrcamento() { if (currentUser?.perfil !== 'Vendedor') return; navigateTo('novo_orcamento'); }
 
@@ -1684,20 +1466,7 @@
                 <div class="novo-orcamento-section"><h4 class="novo-orcamento-title"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg> Dados do Cliente</h4>
                     <div class="form-group" style="margin-bottom: 16px;"><label for="modNome">Nome do Cliente *</label><input type="text" id="modNome" class="form-input" placeholder="Nome completo" onblur="validateField('modNome','errNome')"><div class="field-error" id="errNome"></div></div>
                     <div class="form-group" style="margin-bottom: 16px;"><label for="modWhats">WhatsApp *</label><input type="tel" id="modWhats" class="form-input" placeholder="(XX) XXXXX-XXXX" onblur="validateField('modWhats','errWhats')"><div class="field-error" id="errWhats"></div></div>
-                    
-                    <div class="form-group" style="margin-bottom: 16px;">
-                        <label for="modOrigem">Origem do Lead</label>
-                        <select id="modOrigem" class="form-input">
-                            <option value="">Selecionar...</option>
-                            <option value="Instagram">Instagram / Redes Sociais</option>
-                            <option value="WhatsApp">WhatsApp (Busca Orgânica)</option>
-                            <option value="Indicação">Indicação</option>
-                            <option value="Passou na Loja">Passou na Loja Física</option>
-                            <option value="Panfleto">Panfleto / Ação Externa</option>
-                            <option value="Outros">Outros</option>
-                        </select>
-                    </div>
-
+                    <div class="form-group" style="margin-bottom: 16px;"><label for="modOrigem">Origem do Lead</label><select id="modOrigem" class="form-input"><option value="">Selecionar...</option><option value="Instagram">Instagram / Redes Sociais</option><option value="WhatsApp">WhatsApp (Busca Orgânica)</option><option value="Indicação">Indicação</option><option value="Passou na Loja">Passou na Loja Física</option><option value="Panfleto">Panfleto / Ação Externa</option><option value="Outros">Outros</option></select></div>
                     <div class="form-group" style="margin-bottom: 16px;"><label for="modInteresse">Nível de Interesse</label><select id="modInteresse" class="form-input"><option value="">Selecionar...</option><option value="Alta">Alta</option><option value="Média">Média</option><option value="Baixa">Baixa</option></select></div>
                     <div class="form-group"><label for="modObservacoes">Observações Iniciais</label><textarea id="modObservacoes" class="form-input" rows="4" style="resize:vertical;"></textarea></div>
                 </div>
@@ -1709,20 +1478,10 @@
                         <div class="field-error" id="errItens"></div>
                         <div class="total-modal-box" style="margin-top: 16px; display: flex; justify-content: space-between; align-items: center; background: #f8fafc; padding: 12px 16px; border-radius: 8px; border: 1px solid var(--border-light);"><span style="font-weight: 600; color: var(--text-secondary);">Total Calculado:</span><span class="valor-total" id="displayTotalModal" style="font-size: 1.25rem; font-weight: 800; color: var(--accent-green-dark);">R$ 0,00</span></div>
                     </div>
-                    
-                    <div class="novo-orcamento-section">
-                        <h4 class="novo-orcamento-title"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg> Agendar Próximo Passo *</h4>
+                    <div class="novo-orcamento-section"><h4 class="novo-orcamento-title"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg> Agendar Próximo Passo *</h4>
                         <div class="schedule-form-grid">
-                            <div class="form-group">
-                                <label>Data *</label>
-                                <input type="date" id="modDataContato" class="form-input" onblur="validateField('modDataContato','errDataContato')">
-                                <div class="field-error" id="errDataContato"></div>
-                            </div>
-                            <div class="form-group">
-                                <label>Horário *</label>
-                                <input type="time" id="modHoraContato" class="form-input" onblur="validateField('modHoraContato','errHoraContato')">
-                                <div class="field-error" id="errHoraContato"></div>
-                            </div>
+                            <div class="form-group"><label>Data *</label><input type="date" id="modDataContato" class="form-input" onblur="validateField('modDataContato','errDataContato')"><div class="field-error" id="errDataContato"></div></div>
+                            <div class="form-group"><label>Horário *</label><input type="time" id="modHoraContato" class="form-input" onblur="validateField('modHoraContato','errHoraContato')"><div class="field-error" id="errHoraContato"></div></div>
                         </div>
                     </div>
                 </div>
@@ -1730,197 +1489,10 @@
             <div style="display:flex; justify-content: flex-end; gap: 16px; margin-top: 24px; padding-top: 24px; border-top: 1px solid var(--border-light);"><button class="btn-cancelar-modal" style="flex:none; width: auto;" onclick="navigateTo(previousView)">Cancelar</button><button class="btn-salvar-modal" id="btnSalvarOrcamento" style="flex:none; width: auto; min-width: 200px;" onclick="salvarOrcamento()"><span class="btn-spinner"></span><span class="btn-text">Salvar Orçamento</span></button></div>
             <p class="msg" id="modalMsg" style="text-align: right; margin-top:12px;"></p>`;
 
-            adicionarProdutoRow();
-            calcTotalModal();
-            salvandoOrcamento = false;
-            document.getElementById('modNome').focus();
+            adicionarProdutoRow(); calcTotalModal(); salvandoOrcamento = false; document.getElementById('modNome').focus();
         }
 
         function validateField(idInput, idErro) { const el = document.getElementById(idInput); const err = document.getElementById(idErro); if (!el || !err) return; const val = el.value.trim(); if (!val) { err.textContent = 'Obrigatório'; el.style.borderColor = '#ef4444'; return false; } else { err.textContent = ''; el.style.borderColor = 'var(--border-light)'; return true; } }
-
-        async function salvarOrcamento() {
-            if (currentUser?.perfil !== 'Vendedor') return; if (salvandoOrcamento) return;
-            
-            const nome = document.getElementById('modNome').value.trim(); 
-            const whats = document.getElementById('modWhats').value.trim();
-            const origem = document.getElementById('modOrigem').value || null;
-            
-            const rows = document.querySelectorAll('.produto-row');
-            let nomesProdutos = []; let valorTotalCalculado = 0; let itensValidosCount = 0;
-            rows.forEach(row => { const prodNome = row.querySelector('.prod-nome').value.trim(); const prodValor = parseCurrency(row.querySelector('.prod-valor').value); if (prodNome && prodValor > 0) { nomesProdutos.push(prodNome); valorTotalCalculado += prodValor; itensValidosCount++; } else if (prodNome || prodValor > 0) { row.querySelector('.prod-nome').style.borderColor = !prodNome ? '#ef4444' : 'var(--border-light)'; row.querySelector('.prod-valor').style.borderColor = prodValor <= 0 ? '#ef4444' : 'var(--border-light)'; } else { row.querySelector('.prod-nome').style.borderColor = 'var(--border-light)'; row.querySelector('.prod-valor').style.borderColor = 'var(--border-light)'; } });
-            
-            const interesse = document.getElementById('modInteresse').value || null; 
-            const observacoes = document.getElementById('modObservacoes').value.trim() || null; 
-            const dataContato = document.getElementById('modDataContato').value || null; 
-            const horaContato = document.getElementById('modHoraContato').value || null;
-            
-            let valid = true; 
-            valid &= validateField('modNome', 'errNome'); 
-            valid &= validateField('modWhats', 'errWhats');
-            valid &= validateField('modDataContato', 'errDataContato');
-            valid &= validateField('modHoraContato', 'errHoraContato');
-
-            if (itensValidosCount === 0) { document.getElementById('errItens').textContent = 'Preencha o nome e o valor de pelo menos um produto.'; valid = false; } else { document.getElementById('errItens').textContent = ''; }
-            
-            if (!valid) return;
-            
-            const modeloFinalCombinado = nomesProdutos.join(' + ');
-            salvandoOrcamento = true; 
-            const btn = document.getElementById('btnSalvarOrcamento'); 
-            btn.classList.add('saving'); btn.disabled = true; btn.querySelector('.btn-text').textContent = 'Salvando...'; document.getElementById('modalMsg').textContent = '';
-            
-            try {
-                let idClienteSalvo;
-                const { data: clienteExistente, error: erroBusca } = await db.from('clientes').select('id_cliente').eq('whatsapp', whats).maybeSingle();
-
-                if (erroBusca) throw new Error("Erro ao buscar cliente: " + erroBusca.message);
-
-                if (clienteExistente) {
-                    idClienteSalvo = clienteExistente.id_cliente;
-                } else {
-                    const { data: novoCliente, error: erroCliente } = await db.from('clientes').insert([{ nome_cliente: nome, whatsapp: whats }]).select().single();
-                    if (erroCliente) throw new Error("Erro no Cadastro do Cliente: " + erroCliente.message);
-                    idClienteSalvo = novoCliente.id_cliente;
-                }
-
-                let obsFinal = observacoes || '';
-                if (origem) { obsFinal = `[Origem: ${origem}]\n${obsFinal}`; }
-
-                const { data: orc, error: erroOrc } = await db.from('orcamentos')
-                    .insert([{ 
-                        id_cliente: idClienteSalvo, 
-                        id_usuario: currentUser.id_usuario, 
-                        modelo_colchao: modeloFinalCombinado, 
-                        valor_orcado: valorTotalCalculado, 
-                        status: STATUS.CONTATO_INICIAL, 
-                        interesse: interesse, 
-                        observacoes: obsFinal.trim() || null, 
-                        data_contato: dataContato, 
-                        hora_contato: horaContato 
-                    }])
-                    .select()
-                    .single();
-                
-                if (erroOrc) throw new Error("Erro no Orçamento: " + erroOrc.message);
-                
-                showToast('Orçamento salvo com sucesso!', 'success');
-                await carregarKpisEDashboard();
-                abrirDetalhesCliente(orc.id_orcamento);
-            } catch (error) { 
-                showToast(error.message, 'error');
-                btn.classList.remove('saving'); 
-                btn.disabled = false; 
-                btn.querySelector('.btn-text').textContent = 'Salvar Orçamento'; 
-                salvandoOrcamento = false; 
-            }
-        }
-
-        function abrirMotivoPerda(id) { 
-            idOrcamentoParaPerder = id; 
-            openModal('modalMotivoPerda'); 
-            document.getElementById('motivoPerdaSelect').value = ''; 
-            document.getElementById('motivoPerda').value = ''; 
-        }
-
-        function abrirConfirmaFechamento(id) { 
-            idOrcamentoParaPerder = null; 
-            clienteAtualParaDetalhes = kpisMensais.find(o => String(o.id_orcamento) === String(id)) || clienteAtualParaDetalhes; 
-            openModal('modalConfirmaFechamento'); 
-            document.getElementById('btnConfirmaFechar').onclick = function() { 
-                acaoDetalhes(id, STATUS.VENDIDO); 
-                closeModal('modalConfirmaFechamento'); 
-            }; 
-        }
-
-        async function confirmarPerda(event) {
-            event.preventDefault();
-            if (isConfirmingPerda) return;
-            
-            const idFinal = idOrcamentoParaPerder || clienteAtualParaDetalhes?.id_orcamento;
-            if(!idFinal) return showToast('Erro: Orçamento não encontrado.', 'error');
-            
-            const motivoSelect = document.getElementById('motivoPerdaSelect').value;
-            const motivoTexto = document.getElementById('motivoPerda').value.trim();
-            const errMotivo = document.getElementById('errMotivo');
-            
-            if (!motivoSelect) { errMotivo.textContent = 'Selecione o motivo principal.'; return; }
-            
-            isConfirmingPerda = true;
-            const btn = event.currentTarget;
-            btn.innerHTML = 'Salvando...';
-            btn.disabled = true;
-            
-            const motivoFinal = motivoTexto ? `${motivoSelect} - ${motivoTexto}` : motivoSelect;
-
-            try {
-                const { error: err1 } = await db.from('orcamentos').update({ status: STATUS.PERDIDO }).eq('id_orcamento', idFinal);
-                if (err1) throw new Error(err1.message);
-                const { error: err2 } = await db.from('comentarios').insert([{ id_orcamento: idFinal, texto: motivoFinal, tipo: 'Perda', autor: currentUser.nome }]);
-                if (err2) throw new Error(err2.message);
-                
-                closeModal('modalMotivoPerda');
-                showToast('Venda registrada como Perdida.', 'info');
-                await carregarKpisEDashboard();
-                abrirDetalhesCliente(idFinal);
-            } catch (e) { 
-                errMotivo.textContent = 'Erro ao salvar: ' + e.message; 
-            } finally { 
-                isConfirmingPerda = false; 
-                btn.innerHTML = 'Confirmar Perda'; 
-                btn.disabled = false;
-            }
-        }
-
-        async function acaoDetalhes(id, status) {
-            if (currentUser?.perfil !== 'Vendedor') return;
-            try {
-                const { error } = await db.from('orcamentos').update({ status }).eq('id_orcamento', id);
-                if (error) throw new Error(error.message);
-                showToast(`Venda alterada para: ${status}`, 'success');
-                voltarDetalhes(); 
-                await carregarKpisEDashboard();
-                if(currentView === 'inicio') atualizarTabelaPaginadaServer();
-            } catch(e) { 
-                showToast('Falha ao atualizar o status.', 'error');
-            }
-        }
-
-        async function agendarContato() {
-            const data = document.getElementById('agendarData').value;
-            const hora = document.getElementById('agendarHora').value;
-            const tipo = document.getElementById('agendarTipo').value;
-            const obs = document.getElementById('agendarObservacao')?.value?.trim() || '';
-            const tipoErro = document.getElementById('agendarTipoErro');
-            
-            if (!data) return showToast('Selecione uma data para o agendamento.', 'error');
-            if (!tipo) { tipoErro.textContent = 'Selecione o tipo de contato.'; document.getElementById('agendarTipo').style.borderColor = '#ef4444'; return; }
-            else { tipoErro.textContent = ''; document.getElementById('agendarTipo').style.borderColor = 'var(--border-light)'; }
-            
-            const btn = document.getElementById('btnConfirmarAgendamento');
-            btn.querySelector('.btn-spinner').style.display = 'inline-block';
-            btn.querySelector('.btn-text').textContent = 'Salvando...';
-            btn.disabled = true;
-            try {
-                const { error: err1 } = await db.from('orcamentos').update({ data_contato: data, hora_contato: hora, observacao_agendamento: obs }).eq('id_orcamento', clienteAtualParaDetalhes.id_orcamento);
-                if (err1) throw new Error(err1.message);
-                
-                const dataFormatada = new Date(data + 'T00:00:00').toLocaleDateString('pt-BR');
-                let texto = `Retorno agendado para ${dataFormatada}${hora ? ' às ' + hora : ''} • ${tipo}`;
-                if (obs) texto += `\nLembrete: ${obs}`;
-                
-                const { error: err2 } = await db.from('comentarios').insert([{ id_orcamento: clienteAtualParaDetalhes.id_orcamento, texto: texto, tipo: 'Sistema', autor: currentUser.nome }]);
-                if (err2) throw new Error(err2.message);
-                
-                showToast('Agendamento confirmado!', 'success');
-                await abrirDetalhesCliente(clienteAtualParaDetalhes.id_orcamento);
-            } catch (e) { 
-                showToast('Erro ao agendar: ' + e.message, 'error'); 
-            } finally {
-                btn.querySelector('.btn-spinner').style.display = 'none'; 
-                btn.querySelector('.btn-text').textContent = 'Confirmar Agendamento'; 
-                btn.disabled = false; 
-            }
-        }
 
         function renderAdminInicio(main) {
             const isGerente = currentUser.perfil === 'Gerente' || currentUser.perfil === 'Administrador' || currentUser.perfil === 'Admin';
@@ -1950,16 +1522,42 @@
             html += `</tbody></table></div>`; main.innerHTML = html;
         }
 
+        async function agendarContato() {
+            const data = document.getElementById('agendarData').value;
+            const hora = document.getElementById('agendarHora').value;
+            const tipo = document.getElementById('agendarTipo').value;
+            const obs = document.getElementById('agendarObservacao')?.value?.trim() || '';
+            const tipoErro = document.getElementById('agendarTipoErro');
+            
+            if (!data) return showToast('Selecione uma data para o agendamento.', 'error');
+            if (!tipo) { tipoErro.textContent = 'Selecione o tipo de contato.'; document.getElementById('agendarTipo').style.borderColor = '#ef4444'; return; }
+            else { tipoErro.textContent = ''; document.getElementById('agendarTipo').style.borderColor = 'var(--border-light)'; }
+            
+            const btn = document.getElementById('btnConfirmarAgendamento');
+            btn.querySelector('.btn-spinner').style.display = 'inline-block'; btn.querySelector('.btn-text').textContent = 'Salvando...'; btn.disabled = true;
+            try {
+                const { error: err1 } = await db.from('orcamentos').update({ data_contato: data, hora_contato: hora, observacao_agendamento: obs }).eq('id_orcamento', clienteAtualParaDetalhes.id_orcamento);
+                if (err1) throw new Error(err1.message);
+                
+                const dataFormatada = new Date(data + 'T00:00:00').toLocaleDateString('pt-BR');
+                let texto = `Retorno agendado para ${dataFormatada}${hora ? ' às ' + hora : ''} • ${tipo}`;
+                if (obs) texto += `\nLembrete: ${obs}`;
+                
+                const { error: err2 } = await db.from('comentarios').insert([{ id_orcamento: clienteAtualParaDetalhes.id_orcamento, texto: texto, tipo: 'Sistema', autor: currentUser.nome }]);
+                if (err2) throw new Error(err2.message);
+                
+                showToast('Agendamento confirmado!', 'success'); await abrirDetalhesCliente(clienteAtualParaDetalhes.id_orcamento);
+            } catch (e) { showToast('Erro ao agendar: ' + e.message, 'error'); } 
+            finally { btn.querySelector('.btn-spinner').style.display = 'none'; btn.querySelector('.btn-text').textContent = 'Confirmar Agendamento'; btn.disabled = false; }
+        }
+
         function voltarDetalhes() { currentView = previousView; navigateTo(currentView); }
         function changePage(page) { currentPage = page; atualizarTabelaPaginadaServer(); }
 
         function toggleTheme() {
-            document.body.classList.toggle('dark');
-            localStorage.setItem('theme', document.body.classList.contains('dark') ? 'dark' : 'light');
-            
+            document.body.classList.toggle('dark'); localStorage.setItem('theme', document.body.classList.contains('dark') ? 'dark' : 'light');
             if (donutChartInstance) { donutChartInstance.destroy(); donutChartInstance = null; }
             if (barChartInstance) { barChartInstance.destroy(); barChartInstance = null; }
-            
             if (currentView === 'inicio') renderInicio();
             else if (currentView === 'admin_inicio') renderAdminInicio(document.getElementById('mainContent'));
             else if (currentView === 'admin_usuarios') renderAdminUsuarios(document.getElementById('mainContent'));
@@ -1978,30 +1576,21 @@
         });
 
         document.getElementById('hamburgerBtn').addEventListener('click', () => {
-            const sidebar = document.getElementById('sidebar');
-            const overlay = document.getElementById('sidebarOverlay');
-            sidebar.classList.toggle('open');
-            overlay.classList.toggle('open');
-            if (sidebar.classList.contains('open')) {
-                sidebar.querySelector('.nav-item.active')?.focus();
-            }
+            const sidebar = document.getElementById('sidebar'); const overlay = document.getElementById('sidebarOverlay');
+            sidebar.classList.toggle('open'); overlay.classList.toggle('open');
+            if (sidebar.classList.contains('open')) sidebar.querySelector('.nav-item.active')?.focus();
         });
 
         document.getElementById('sidebarOverlay').addEventListener('click', () => {
-            document.getElementById('sidebar').classList.remove('open');
-            document.getElementById('sidebarOverlay').classList.remove('open');
+            document.getElementById('sidebar').classList.remove('open'); document.getElementById('sidebarOverlay').classList.remove('open');
         });
 
         document.querySelectorAll('.nav-item').forEach(item => {
             item.addEventListener('click', () => {
-                if (window.innerWidth <= 768) {
-                    document.getElementById('sidebar').classList.remove('open');
-                    document.getElementById('sidebarOverlay').classList.remove('open');
-                }
+                if (window.innerWidth <= 768) { document.getElementById('sidebar').classList.remove('open'); document.getElementById('sidebarOverlay').classList.remove('open'); }
             });
         });
 
-        // Inicia a aplicação
         checkSession();
     </script>
 </body>
