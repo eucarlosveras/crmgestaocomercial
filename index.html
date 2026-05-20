@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CV CRM · Gestão Comercial</title>
-    <!-- ⚠️ ATENÇÃO: RLS DEVE ESTAR DESATIVADO EM TODAS AS TABELAS NO SUPABASE -->
+    <!-- ⚠️ ATENÇÃO: EM PRODUÇÃO, ATIVE O RLS E CONFIGURE AS POLÍTICAS DE ACESSO -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -42,6 +42,13 @@
         textarea { resize: none; }
         #globalLoader { position: fixed; top: 0; left: 0; width: 100%; height: 3px; background: transparent; z-index: 9999; pointer-events: none; }
         #globalLoader .loader-fill { height: 100%; width: 0; background: var(--brand-blue); transition: width 0.4s ease; } #globalLoader.loading .loader-fill { width: 70%; transition: width 2s ease; }
+
+        #toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 10000; display: flex; flex-direction: column; gap: 10px; pointer-events: none; }
+        .toast { padding: 14px 20px; border-radius: 8px; color: #fff; font-size: var(--font-sm); font-weight: 600; box-shadow: 0 8px 24px rgba(0,0,0,0.2); opacity: 0; transform: translateX(100%); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); display: flex; align-items: center; gap: 10px; max-width: 320px; word-wrap: break-word; }
+        .toast.show { opacity: 1; transform: translateX(0); }
+        .toast.success { background: var(--accent-green); }
+        .toast.error { background: #ef4444; }
+        .toast.info { background: var(--brand-blue); }
 
         .login-overlay { position: fixed; inset: 0; background: radial-gradient(circle at center, #e2e8f0 0%, #cbd5e1 100%); display: flex; align-items: center; justify-content: center; z-index: 9999; transition: opacity 0.4s ease, visibility 0.4s ease; }
         body.dark .login-overlay { background: radial-gradient(circle at center, #1e293b 0%, #0a0f18 100%); } .login-overlay.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
@@ -138,7 +145,7 @@
         body.dark .table-card tbody tr.clickable-row:hover { background: rgba(59, 130, 246, 0.15); }
 
         .client-name { font-weight: 600; color: var(--brand-blue-dark); cursor: pointer; } .client-name:hover { text-decoration: underline; }
-        .pagination { display: flex; align-items: center; gap: 8px; margin-top: 16px; justify-content: flex-end; font-size: var(--font-sm); } .pagination button { padding: 6px 12px; border-radius: 6px; border: 1px solid var(--border-light); background: var(--card-bg); color: var(--text-primary); cursor: pointer; font-weight: 500; } .pagination button:disabled { opacity: 0.5; cursor: default; }
+        .pagination { display: flex; align-items: center; gap: 8px; margin-top: 16px; justify-content: flex-end; font-size: var(--font-sm); } .pagination button { padding: 6px 12px; border-radius: 6px; border: 1px solid var(--border-light); background: var(--card-bg); color: var(--text-primary); cursor: pointer; font-weight: 500; transition: all 0.2s;} .pagination button:hover:not(:disabled) { background: #f1f5f9; } .pagination button:disabled { opacity: 0.5; cursor: default; }
 
         .detalhes-page-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
         .info-card { background: var(--card-bg); border-radius: var(--radius-md); padding: 28px; box-shadow: var(--shadow-md); border: 1px solid var(--border-light); display: flex; flex-direction: column; }
@@ -171,6 +178,8 @@
         .btn-primary-action { background: var(--brand-blue); color: #fff; border: none; padding: 12px 22px; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: var(--font-sm); font-family: 'Inter', sans-serif; transition: all var(--transition); display: inline-flex; align-items: center; gap: 8px; } .btn-primary-action:hover { background: var(--brand-blue-dark); box-shadow: 0 4px 12px rgba(59,130,246,0.3); }
         .btn-danger-ghost { background: var(--danger-light-bg); color: var(--danger-text); border: 1.5px solid var(--danger-border); padding: 12px 22px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: var(--font-sm); font-family: 'Inter', sans-serif; transition: all var(--transition); display: inline-flex; align-items: center; gap: 8px; } .btn-danger-ghost:hover { background: var(--danger-border); }
         .btn-salvar-timeline { background: var(--brand-blue); color: #fff; border: none; padding: 12px 28px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: var(--font-sm); font-family: 'Inter', sans-serif; display: inline-flex; align-items: center; justify-content: center; gap: 10px; transition: all var(--transition); } .btn-salvar-timeline:hover { background: var(--brand-blue-dark); } .btn-salvar-timeline svg { width: 16px; height: 16px; }
+        .btn-export { background: var(--card-bg); border: 1.5px solid var(--border-light); color: var(--text-primary); padding: 10px 16px; border-radius: 20px; cursor: pointer; font-weight: 600; font-size: var(--font-sm); font-family: 'Inter', sans-serif; transition: all 0.2s ease; display: inline-flex; align-items: center; gap: 6px; }
+        .btn-export:hover { background: #f1f5f9; border-color: #cbd5e1; } body.dark .btn-export:hover { background: #1e293b; border-color: #475569; }
 
         .fab { position: fixed; bottom: 32px; right: 36px; width: 56px; height: 56px; border-radius: 50%; background: var(--brand-blue); color: #fff; font-size: 28px; border: none; cursor: pointer; box-shadow: 0 8px 24px rgba(59,130,246,0.4); display: flex; align-items: center; justify-content: center; z-index: 200; transition: transform 0.2s, background 0.2s; } .fab:hover { background: var(--brand-blue-dark); transform: scale(1.06); }
         .modal-overlay { position: fixed; inset: 0; background: rgba(15,23,42,0.6); backdrop-filter: blur(6px); z-index: 300; display: flex; align-items: center; justify-content: center; opacity: 0; visibility: hidden; transition: all 0.25s ease; } .modal-overlay.open { opacity: 1; visibility: visible; }
@@ -210,11 +219,14 @@
             .btn-voltar { font-size: 12px; padding: 8px 12px; }
         }
 
-        @media (max-width: 1100px) { .sidebar { width: 210px; min-width: 210px; } .main-content { margin-left: 210px; } .kpi-row { grid-template-columns: 1fr 1fr; } .charts-row, .charts-row-duplo, .charts-row-triplo, .action-grid { grid-template-columns: 1fr; } .detalhes-page-grid, .novo-orcamento-grid { grid-template-columns: 1fr; } .bar-chart-wrapper { min-height: 180px; max-height: 220px; } }
+        @media (max-width: 1100px) { .sidebar { width: 210px; min-width: 210px; } .main-content { margin-left: 210px; } .kpi-row { grid-template-columns: 1fr 1fr; } .charts-row, .charts-row-duplo, .charts-row-triplo, .action-grid, .health-grid { grid-template-columns: 1fr; } .detalhes-page-grid, .novo-orcamento-grid { grid-template-columns: 1fr; } .bar-chart-wrapper { min-height: 180px; max-height: 220px; } }
     </style>
 </head>
 <body>
     <div id="globalLoader"><div class="loader-fill"></div></div>
+    
+    <!-- Toast Container para Feedbacks visuais -->
+    <div id="toast-container"></div>
 
     <button class="hamburger" id="hamburgerBtn" aria-label="Abrir menu">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -276,10 +288,8 @@
                 <option value="Falta de limite/crédito">Falta de limite/crédito</option>
                 <option value="Outros">Outros</option>
             </select>
-            
             <label for="motivoPerda">Detalhes adicionais</label>
             <textarea id="motivoPerda" rows="3" class="form-input" placeholder="Detalhe um pouco mais (opcional)..."></textarea>
-            
             <div class="field-error" id="errMotivo"></div>
             <div class="modal-btns">
                 <button class="btn-cancelar-modal" onclick="closeModal('modalMotivoPerda')">Cancelar</button>
@@ -288,40 +298,9 @@
         </div>
     </div>
     
-    <div class="modal-overlay" id="modalConfirmaFechamento" onclick="if(event.target === this) closeModal('modalConfirmaFechamento')">
-        <div class="modal-card" style="max-width:420px;">
-            <h3>Confirmar Fechamento</h3>
-            <p style="margin-bottom:16px;">Deseja realmente fechar esta venda?</p>
-            <div class="modal-btns">
-                <button class="btn-cancelar-modal" onclick="closeModal('modalConfirmaFechamento')">Cancelar</button>
-                <button class="btn-salvar-modal" id="btnConfirmaFechar">Confirmar</button>
-            </div>
-        </div>
-    </div>
-    
-    <div class="modal-overlay" id="modalEditarMeta" onclick="if(event.target === this) closeModal('modalEditarMeta')">
-        <div class="modal-card" style="max-width:420px;">
-            <h3>Editar Meta</h3>
-            <label for="inputMetaValor">Nova meta (R$)</label>
-            <input type="text" id="inputMetaValor" placeholder="R$ 50.000,00" inputmode="decimal">
-            <div class="field-error" id="errMeta"></div>
-            <div class="modal-btns">
-                <button class="btn-cancelar-modal" onclick="closeModal('modalEditarMeta')">Cancelar</button>
-                <button class="btn-salvar-modal" id="btnSalvarMeta" onclick="salvarNovaMeta()"><span class="btn-spinner"></span><span class="btn-text">Salvar</span></button>
-            </div>
-        </div>
-    </div>
-    
-    <div class="modal-overlay" id="modalExcluirComentario" onclick="if(event.target === this) closeModal('modalExcluirComentario')">
-        <div class="modal-card" style="max-width:420px;">
-            <h3>Excluir comentário</h3>
-            <p style="margin-bottom:16px;">Tem certeza que deseja excluir este comentário?</p>
-            <div class="modal-btns">
-                <button class="btn-cancelar-modal" onclick="closeModal('modalExcluirComentario')">Cancelar</button>
-                <button class="btn-salvar-modal" id="btnConfirmarExclusao" style="background:#ef4444;" onclick="confirmarExclusaoComentario()"><span class="btn-spinner"></span><span class="btn-text">Excluir</span></button>
-            </div>
-        </div>
-    </div>
+    <div class="modal-overlay" id="modalConfirmaFechamento" onclick="if(event.target === this) closeModal('modalConfirmaFechamento')"><div class="modal-card" style="max-width:420px;"><h3>Confirmar Fechamento</h3><p style="margin-bottom:16px;">Deseja realmente fechar esta venda?</p><div class="modal-btns"><button class="btn-cancelar-modal" onclick="closeModal('modalConfirmaFechamento')">Cancelar</button><button class="btn-salvar-modal" id="btnConfirmaFechar">Confirmar</button></div></div></div>
+    <div class="modal-overlay" id="modalEditarMeta" onclick="if(event.target === this) closeModal('modalEditarMeta')"><div class="modal-card" style="max-width:420px;"><h3>Editar Meta</h3><label for="inputMetaValor">Nova meta (R$)</label><input type="text" id="inputMetaValor" placeholder="R$ 50.000,00" inputmode="decimal"><div class="field-error" id="errMeta"></div><div class="modal-btns"><button class="btn-cancelar-modal" onclick="closeModal('modalEditarMeta')">Cancelar</button><button class="btn-salvar-modal" id="btnSalvarMeta" onclick="salvarNovaMeta()"><span class="btn-spinner"></span><span class="btn-text">Salvar</span></button></div></div></div>
+    <div class="modal-overlay" id="modalExcluirComentario" onclick="if(event.target === this) closeModal('modalExcluirComentario')"><div class="modal-card" style="max-width:420px;"><h3>Excluir comentário</h3><p style="margin-bottom:16px;">Tem certeza que deseja excluir este comentário?</p><div class="modal-btns"><button class="btn-cancelar-modal" onclick="closeModal('modalExcluirComentario')">Cancelar</button><button class="btn-salvar-modal" id="btnConfirmarExclusao" style="background:#ef4444;" onclick="confirmarExclusaoComentario()"><span class="btn-spinner"></span><span class="btn-text">Excluir</span></button></div></div></div>
 
     <div class="modal-overlay" id="modalUsuarioAdmin" onclick="if(event.target === this) closeModal('modalUsuarioAdmin')">
         <div class="modal-card" style="max-width:420px;">
@@ -333,10 +312,7 @@
                 <div><label for="adminModStatus">Status de Acesso</label><select id="adminModStatus"><option value="Ativo">Ativo</option><option value="Inativo">Inativo</option></select></div>
             </div>
             <div class="field-error" id="errAdminUsuario"></div>
-            <div class="modal-btns">
-                <button class="btn-cancelar-modal" onclick="closeModal('modalUsuarioAdmin')">Cancelar</button>
-                <button class="btn-salvar-modal" id="btnSalvarUsuarioAdmin" onclick="salvarUsuarioAdmin()"><span class="btn-spinner"></span><span class="btn-text">Salvar Usuário</span></button>
-            </div>
+            <div class="modal-btns"><button class="btn-cancelar-modal" onclick="closeModal('modalUsuarioAdmin')">Cancelar</button><button class="btn-salvar-modal" id="btnSalvarUsuarioAdmin" onclick="salvarUsuarioAdmin()"><span class="btn-spinner"></span><span class="btn-text">Salvar Usuário</span></button></div>
         </div>
     </div>
 
@@ -344,12 +320,9 @@
         <div class="modal-card" style="max-width:420px;">
             <h3>Excluir Usuário</h3>
             <p style="margin-bottom:16px;">Tem certeza que deseja excluir <strong><span id="nomeUsuarioExcluir"></span></strong>?</p>
-            <p style="margin-bottom:16px; font-size:var(--font-xs); color:var(--danger-text); background:var(--danger-light-bg); padding:10px; border-radius:8px; border:1px solid var(--danger-border);"><strong>Atenção:</strong> Se este usuário tiver orçamentos registrados, a exclusão poderá falhar ou apagar o histórico de vendas.</p>
+            <p style="margin-bottom:16px; font-size:var(--font-xs); color:var(--danger-text); background:var(--danger-light-bg); padding:10px; border-radius:8px; border:1px solid var(--danger-border);"><strong>Confirmação Destrutiva:</strong> Se este usuário tiver orçamentos registrados, a exclusão poderá falhar ou gerar inconsistência no histórico de vendas da equipe. Recomendamos a <strong>Inativação</strong> através da edição de perfil.</p>
             <div class="field-error" id="errExcluirUsuario"></div>
-            <div class="modal-btns">
-                <button class="btn-cancelar-modal" onclick="closeModal('modalExcluirUsuarioAdmin')">Cancelar</button>
-                <button class="btn-salvar-modal" id="btnConfirmarExclusaoUsuario" style="background:#ef4444;" onclick="confirmarExclusaoUsuario()">Excluir Definitivamente</button>
-            </div>
+            <div class="modal-btns"><button class="btn-cancelar-modal" onclick="closeModal('modalExcluirUsuarioAdmin')">Cancelar</button><button class="btn-salvar-modal" id="btnConfirmarExclusaoUsuario" style="background:#ef4444;" onclick="confirmarExclusaoUsuario()">Excluir Definitivamente</button></div>
         </div>
     </div>
 
@@ -359,14 +332,29 @@
         const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
         const SUPABASE_ANON_KEY = 'sb_publishable_kvVacObZ3ERPqc9MjOIoWw_aRZeYeIn';
         const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        
         const META_PADRAO = 50000;
         const ITEMS_PER_PAGE = 10;
 
+        // Extração de Constantes para Melhor Prática
+        const STATUS = {
+            CONTATO_INICIAL: 'Contato Inicial',
+            NEGOCIACAO: 'Negociação de Valores',
+            AGUARDANDO: 'Aguardando Decisão',
+            VENDIDO: 'Vendido',
+            FECHADO: 'Fechado',
+            PERDIDO: 'Perdido',
+            DECLINADO: 'Declinado',
+            POS_VENDA: 'Pós-Venda',
+            EM_NEGOCIACAO: 'Em Negociação'
+        };
+
         let currentUser = null;
-        let allOrcamentos = [];
+        let kpisMensais = []; // Usado apenas para os gráficos e contagens do dashboard
         let todosVendedores = [];
         let todosUsuarios = [];
         let todosProdutos = [];
+        
         let currentFilter = 'todos';
         let currentView = 'inicio';
         let previousView = 'inicio';
@@ -376,6 +364,7 @@
         let currentPage = 1;
         let searchTerm = '';
         let selectedVendedor = 'todos';
+        
         let clienteAtualParaDetalhes = null;
         let idOrcamentoParaPerder = null;
         let idMetaEdicao = null;
@@ -391,10 +380,29 @@
 
         let isSavingComment = false;
         let isConfirmingPerda = false;
-
-        let cacheOrcamentosMensais = {};
-
         let notificacoesLidas = new Set();
+
+        // Substituindo alert() por Toasts em UI
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            
+            let icon = '';
+            if(type === 'success') icon = '<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>';
+            if(type === 'error') icon = '<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>';
+            if(type === 'info') icon = '<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>';
+
+            toast.innerHTML = `${icon} <span>${message}</span>`;
+            container.appendChild(toast);
+            
+            requestAnimationFrame(() => toast.classList.add('show'));
+            
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
 
         function carregarNotificacoesLidas() {
             const stored = localStorage.getItem('notificacoesLidas');
@@ -402,7 +410,7 @@
                 try {
                     const arr = JSON.parse(stored);
                     notificacoesLidas = new Set(arr);
-                } catch(e) { console.warn('Erro ao carregar notificações lidas', e); }
+                } catch(e) { }
             }
         }
 
@@ -480,7 +488,6 @@
                 if (error) throw error;
                 usuariosParaLogin = data || [];
             } catch (e) {
-                console.error("Erro ao carregar usuários:", e);
                 document.getElementById('loginMsg').innerHTML = 'Erro de conexão com o banco de dados.';
             }
         }
@@ -533,7 +540,6 @@
                 initAppAfterLogin();
 
             } catch (err) {
-                console.error("Erro interno no login:", err);
                 msg.innerHTML = `<span style="color: #ef4444; font-size: 13px; font-weight: 600;">Erro ao entrar no sistema.</span>`;
             } finally {
                 btn.classList.remove('loading'); btn.disabled = false;
@@ -545,7 +551,6 @@
             document.getElementById('mainContent').style.display = 'flex';
             configurarPermissoes();
             carregarDadosIniciais();
-            // Evitando Polling desnecessário: removido setInterval.
         }
 
         async function configurarPermissoes() {
@@ -562,7 +567,6 @@
                 todosUsuarios = all || [];
                 todosVendedores = todosUsuarios.filter(u => u.perfil === 'Vendedor');
             } catch (e) {
-                console.error("Erro ao carregar usuários:", e);
                 todosUsuarios = [];
                 todosVendedores = [];
             }
@@ -577,7 +581,7 @@
 
         async function carregarDadosIniciais() {
             await carregarProdutos();
-            await carregarDados(true);
+            await carregarKpisEDashboard();
             await carregarHistoricoFaturamento();
             if (currentUser.perfil === 'Administrador' || currentUser.perfil === 'Admin') navigateTo('admin_inicio');
             else navigateTo('inicio');
@@ -586,6 +590,186 @@
         async function logout() {
             currentUser = null;
             location.reload();
+        }
+
+        // Nova função para buscar dados agregados do mês para os KPIs e gráficos (Mais leve)
+        async function carregarKpisEDashboard() {
+            if (!currentUser) return;
+            showLoader();
+            try {
+                let query = db.from('orcamentos').select('id_orcamento, status, valor_orcado, id_usuario, modelo_colchao, data_contato, hora_contato, clientes(nome_cliente, whatsapp)');
+
+                if (currentUser.perfil === 'Vendedor' && !currentUser.id_usuario.includes('mock')) {
+                    query = query.eq('id_usuario', currentUser.id_usuario);
+                } else if (selectedVendedor !== 'todos') {
+                    query = query.eq('id_usuario', selectedVendedor);
+                }
+
+                if (currentDay) {
+                    const start = new Date(currentYear, currentMonth - 1, currentDay).toISOString();
+                    const end = new Date(currentYear, currentMonth - 1, currentDay, 23, 59, 59).toISOString();
+                    query = query.gte('data_criacao', start).lte('data_criacao', end);
+                } else if (currentMonth && currentYear) {
+                    const startDate = new Date(currentYear, currentMonth - 1, 1).toISOString();
+                    const endDate = new Date(currentYear, currentMonth, 0, 23, 59, 59).toISOString();
+                    query = query.gte('data_criacao', startDate).lte('data_criacao', endDate);
+                }
+
+                const { data, error } = await query;
+                if (!error) {
+                    kpisMensais = data || [];
+                }
+            } catch(e) {
+                kpisMensais = [];
+            }
+            
+            atualizarBadge();
+            const notificacoes = buildNotifications();
+            const alertCount = notificacoes.filter(n => n.id !== null).length;
+            renderNotificationBadge(alertCount);
+            hideLoader();
+        }
+
+        // Tabela usando Paginação Real do Supabase e Filtros SQL (.ilike, .eq)
+        async function atualizarTabelaPaginadaServer() {
+            const tbody = document.getElementById('tableBody');
+            const pagination = document.getElementById('paginationContainer');
+            if (!tbody || !pagination) return;
+            
+            const isGerente = currentUser.perfil === 'Gerente' || currentUser.perfil === 'Administrador' || currentUser.perfil === 'Admin';
+            tbody.innerHTML = `<tr><td colspan="${isGerente ? '6' : '5'}" style="text-align:center; padding:24px;">Carregando dados...</td></tr>`;
+
+            try {
+                let query = db.from('orcamentos').select('*, clientes!inner(nome_cliente, whatsapp), usuarios(nome)', { count: 'exact' });
+
+                // Filtro de Vendedor
+                if (currentUser.perfil === 'Vendedor' && !currentUser.id_usuario.includes('mock')) {
+                    query = query.eq('id_usuario', currentUser.id_usuario);
+                } else if (selectedVendedor !== 'todos') {
+                    query = query.eq('id_usuario', selectedVendedor);
+                }
+
+                // Filtro de Data
+                if (currentDay) {
+                    const start = new Date(currentYear, currentMonth - 1, currentDay).toISOString();
+                    const end = new Date(currentYear, currentMonth - 1, currentDay, 23, 59, 59).toISOString();
+                    query = query.gte('data_criacao', start).lte('data_criacao', end);
+                } else if (currentMonth && currentYear) {
+                    const startDate = new Date(currentYear, currentMonth - 1, 1).toISOString();
+                    const endDate = new Date(currentYear, currentMonth, 0, 23, 59, 59).toISOString();
+                    query = query.gte('data_criacao', startDate).lte('data_criacao', endDate);
+                }
+
+                // Filtro de Busca (Substitui o array.filter do front-end)
+                if (searchTerm) {
+                    query = query.ilike('clientes.nome_cliente', `%${searchTerm}%`);
+                }
+
+                // Filtro de Status
+                if (currentFilter !== 'todos') {
+                    if (currentFilter === STATUS.VENDIDO) query = query.in('status', [STATUS.FECHADO, STATUS.VENDIDO]);
+                    else if (currentFilter === STATUS.PERDIDO) query = query.in('status', [STATUS.DECLINADO, STATUS.PERDIDO]);
+                    else if (['Contato Inicial', 'Negociação de Valores', 'Aguardando Decisão'].includes(currentFilter)) {
+                        query = query.in('status', [currentFilter, STATUS.EM_NEGOCIACAO]);
+                    } else {
+                        query = query.eq('status', currentFilter);
+                    }
+                }
+
+                // Range para Paginação Real
+                const from = (currentPage - 1) * ITEMS_PER_PAGE;
+                const to = from + ITEMS_PER_PAGE - 1;
+                query = query.range(from, to).order('data_criacao', { ascending: false });
+
+                const { data: pagina, error, count } = await query;
+                if (error) throw error;
+
+                const totalPages = Math.ceil(count / ITEMS_PER_PAGE) || 1;
+                if (currentPage > totalPages && totalPages > 0) {
+                    currentPage = totalPages;
+                    return atualizarTabelaPaginadaServer();
+                }
+
+                tbody.innerHTML = '';
+                if (!pagina || pagina.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="${isGerente ? '6' : '5'}" style="text-align:center; padding:24px;">Nenhum registro encontrado.</td></tr>`;
+                } else {
+                    pagina.forEach(o => {
+                        const tr = document.createElement('tr');
+                        tr.className = 'clickable-row';
+                        tr.setAttribute('data-id', o.id_orcamento);
+                        tr.style.cursor = 'pointer';
+                        tr.addEventListener('click', function() { abrirDetalhesCliente(o.id_orcamento); });
+
+                        const nome = o.clientes?.nome_cliente || 'Cliente';
+                        const dataRelativa = timeAgo(o.data_criacao);
+                        const dataCompleta = o.data_criacao ? new Date(o.data_criacao).toLocaleDateString('pt-BR') : '-';
+                        const status = o.status || STATUS.CONTATO_INICIAL;
+
+                        tr.innerHTML = `
+                            <td><span class="client-name">${escapeHtml(nome)}</span></td>
+                            <td>${escapeHtml(o.modelo_colchao || '-')}</td>
+                            ${isGerente ? `<td>${escapeHtml(o.usuarios?.nome || '-')}</td>` : ''}
+                            <td><span class="status-tag ${classToFormatStatus(status)}">${escapeHtml(status)}</span></td>
+                            <td title="${dataCompleta}">${dataRelativa}</td>
+                            <td style="font-weight:700;">R$ ${parseFloat(o.valor_orcado || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+                }
+
+                pagination.innerHTML = `
+                    <button onclick="changePage(${currentPage - 1})" ${currentPage <= 1 ? 'disabled' : ''}>Anterior</button>
+                    <span>Página ${currentPage} de ${totalPages}</span>
+                    <button onclick="changePage(${currentPage + 1})" ${currentPage >= totalPages ? 'disabled' : ''}>Próximo</button>
+                `;
+            } catch (error) {
+                tbody.innerHTML = `<tr><td colspan="${isGerente ? '6' : '5'}" style="text-align:center; padding:24px; color:#ef4444;">Erro ao carregar dados da tabela.</td></tr>`;
+            }
+        }
+
+        async function exportarCSV() {
+            showToast('Gerando relatório...', 'info');
+            try {
+                let query = db.from('orcamentos').select('*, clientes!inner(nome_cliente, whatsapp), usuarios(nome)');
+                if (currentUser.perfil === 'Vendedor' && !currentUser.id_usuario.includes('mock')) query = query.eq('id_usuario', currentUser.id_usuario);
+                else if (selectedVendedor !== 'todos') query = query.eq('id_usuario', selectedVendedor);
+                
+                if (currentMonth && currentYear && !currentDay) {
+                    const start = new Date(currentYear, currentMonth - 1, 1).toISOString();
+                    const end = new Date(currentYear, currentMonth, 0, 23, 59, 59).toISOString();
+                    query = query.gte('data_criacao', start).lte('data_criacao', end);
+                }
+                
+                const { data, error } = await query;
+                if (error) throw error;
+                if(!data || data.length === 0) return showToast('Nenhum dado para exportar.', 'error');
+
+                let csv = 'Data,Cliente,WhatsApp,Produto,Valor,Status,Vendedor\n';
+                data.forEach(row => {
+                    const dataFormatada = new Date(row.data_criacao).toLocaleDateString('pt-BR');
+                    const nome = `"${(row.clientes?.nome_cliente || '').replace(/"/g, '""')}"`;
+                    const whats = `"${row.clientes?.whatsapp || ''}"`;
+                    const prod = `"${(row.modelo_colchao || '').replace(/"/g, '""')}"`;
+                    const valor = row.valor_orcado || 0;
+                    const status = row.status || '';
+                    const vendedor = `"${(row.usuarios?.nome || '').replace(/"/g, '""')}"`;
+                    csv += `${dataFormatada},${nome},${whats},${prod},${valor},${status},${vendedor}\n`;
+                });
+
+                const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csv], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement("a");
+                const url = URL.createObjectURL(blob);
+                link.setAttribute("href", url);
+                link.setAttribute("download", `relatorio_vendas_${currentMonth}_${currentYear}.csv`);
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                showToast('Relatório exportado com sucesso!', 'success');
+            } catch(e) {
+                showToast('Erro ao exportar relatório.', 'error');
+            }
         }
 
         async function salvarUsuarioAdmin() {
@@ -619,8 +803,8 @@
 
                 closeModal('modalUsuarioAdmin');
                 renderAdminUsuarios(document.getElementById('mainContent'));
+                showToast('Usuário salvo com sucesso.', 'success');
             } catch (e) {
-                console.error(e);
                 err.textContent = 'Erro: ' + e.message;
             } finally {
                 btn.classList.remove('saving');
@@ -652,79 +836,13 @@
             openModal('modalUsuarioAdmin');
         }
 
-        async function carregarDados(force = false) {
-            if (!currentUser) return;
-            showLoader();
-            const chaveMes = `${currentYear}-${currentMonth}`;
-            
-            if (!force && cacheOrcamentosMensais[chaveMes] && !currentDay && selectedVendedor === 'todos') {
-                allOrcamentos = cacheOrcamentosMensais[chaveMes];
-            } else {
-                try {
-                    let query = db.from('orcamentos').select('*, clientes(nome_cliente, whatsapp), usuarios(nome)');
-
-                    if (currentUser.perfil === 'Vendedor' && !currentUser.id_usuario.includes('mock')) {
-                        query = query.eq('id_usuario', currentUser.id_usuario);
-                    } else if (selectedVendedor !== 'todos') {
-                        query = query.eq('id_usuario', selectedVendedor);
-                    }
-
-                    if (currentDay) {
-                        const start = new Date(currentYear, currentMonth - 1, currentDay).toISOString();
-                        const end = new Date(currentYear, currentMonth - 1, currentDay, 23, 59, 59).toISOString();
-                        query = query.gte('data_criacao', start).lte('data_criacao', end);
-                    } else if (currentMonth && currentYear) {
-                        const startDate = new Date(currentYear, currentMonth - 1, 1).toISOString();
-                        const endDate = new Date(currentYear, currentMonth, 0, 23, 59, 59).toISOString();
-                        query = query.gte('data_criacao', startDate).lte('data_criacao', endDate);
-                    }
-
-                    const { data, error } = await query.order('data_criacao', { ascending: false });
-                    if (error) {
-                        console.error("Erro no carregamento", error);
-                        allOrcamentos = [];
-                    } else {
-                        allOrcamentos = data || [];
-                        if (!currentDay && selectedVendedor === 'todos') {
-                            cacheOrcamentosMensais[chaveMes] = allOrcamentos;
-                        }
-                    }
-                } catch(e) {
-                    console.error("Exceção ao carregar:", e);
-                    allOrcamentos = [];
-                }
-            }
-
-            atualizarBadge();
-            const notificacoes = buildNotifications();
-            const alertCount = notificacoes.filter(n => n.id !== null).length;
-            renderNotificationBadge(alertCount);
-
-            if (currentView === 'inicio') renderInicio();
-            else if (currentView === 'admin_inicio') renderAdminInicio(document.getElementById('mainContent'));
-            else if (currentView === 'admin_usuarios') renderAdminUsuarios(document.getElementById('mainContent'));
-            else if (currentView === 'agenda_dia') renderAgendaDia();
-            else if (currentView === 'clientes') renderClientes();
-            else if (currentView === 'metas') renderMetas();
-            else if (currentView === 'detalhes_cliente') renderDetalhesClientePage();
-            else if (currentView === 'novo_orcamento') renderNovoOrcamentoPage();
-
-            hideLoader();
-        }
-
         async function carregarProdutos() {
             try {
                 const { data, error } = await db.from('produtos').select('produto');
                 if (!error && data) {
-                    todosProdutos = data
-                        .map(p => ({ nome: p.produto || '' }))
-                        .filter(p => p.nome.trim() !== '')
-                        .sort((a, b) => a.nome.localeCompare(b.nome));
-                } else {
-                    console.warn("Tabela 'produtos' pode não existir ou não estar configurada corretamente.");
-                    todosProdutos = [];
+                    todosProdutos = data.map(p => ({ nome: p.produto || '' })).filter(p => p.nome.trim() !== '').sort((a, b) => a.nome.localeCompare(b.nome));
                 }
-            } catch (e) { console.error("Falha ao carregar produtos:", e); }
+            } catch (e) { }
         }
 
         async function carregarHistoricoFaturamento() {
@@ -741,7 +859,7 @@
                     const { data } = await db.from('orcamentos')
                         .select('valor_orcado')
                         .eq('id_usuario', currentUser.id_usuario)
-                        .in('status', ['Fechado', 'Vendido'])
+                        .in('status', [STATUS.FECHADO, STATUS.VENDIDO])
                         .gte('data_criacao', startDate)
                         .lte('data_criacao', endDate);
                         
@@ -750,16 +868,16 @@
                     const anoAbrev = ano.toString().slice(-2);
                     historicoFaturamento.push({ mes: nomeMes + '/' + anoAbrev, valor: total });
                 }
-            } catch(e) { console.error(e); }
+            } catch(e) { }
         }
 
         function atualizarBadge() {
-            const pendentes = allOrcamentos.filter(o => ['Em Negociação', 'Contato Inicial', 'Negociação de Valores', 'Aguardando Decisão'].includes(o.status)).length;
+            const pendentes = kpisMensais.filter(o => [STATUS.EM_NEGOCIACAO, STATUS.CONTATO_INICIAL, STATUS.NEGOCIACAO, STATUS.AGUARDANDO].includes(o.status)).length;
             const badge = document.getElementById('badgeAgendaDia');
             if (badge) badge.classList.toggle('visible', pendentes > 0);
         }
 
-        function navigateTo(view) {
+        async function navigateTo(view) {
             previousView = currentView !== 'detalhes_cliente' && currentView !== 'novo_orcamento' ? currentView : previousView;
             currentView = view;
             document.querySelectorAll('.nav-item').forEach(el => { el.classList.remove('active'); el.removeAttribute('aria-current'); });
@@ -770,11 +888,20 @@
             if (searchInput) searchInput.value = '';
             searchTerm = '';
 
-            if (view === 'admin_inicio') renderAdminInicio(document.getElementById('mainContent'));
+            if (view === 'inicio') {
+                await carregarKpisEDashboard();
+                renderInicio();
+            }
+            else if (view === 'admin_inicio') renderAdminInicio(document.getElementById('mainContent'));
             else if (view === 'admin_usuarios') renderAdminUsuarios(document.getElementById('mainContent'));
-            else if (view === 'inicio') renderInicio();
-            else if (view === 'agenda_dia') renderAgendaDia();
-            else if (view === 'clientes') renderClientes();
+            else if (view === 'agenda_dia') {
+                await carregarKpisEDashboard(); // Garante dados mais novos para a agenda
+                renderAgendaDia();
+            }
+            else if (view === 'clientes') {
+                await carregarKpisEDashboard();
+                renderClientes();
+            }
             else if (view === 'metas') renderMetas();
             else if (view === 'detalhes_cliente') renderDetalhesClientePage();
             else if (view === 'novo_orcamento') renderNovoOrcamentoPage();
@@ -858,10 +985,7 @@
             if (index < 0) return;
             com[index]._editando = true;
             renderDetalhesClientePage();
-            setTimeout(() => {
-                const input = document.getElementById('editInput_' + id_comentario);
-                if (input) input.focus();
-            }, 100);
+            setTimeout(() => { const input = document.getElementById('editInput_' + id_comentario); if (input) input.focus(); }, 100);
         }
 
         function cancelarEdicao() {
@@ -878,13 +1002,13 @@
             btn.classList.add('saving'); btn.disabled = true;
             try {
                 const { error } = await db.from('comentarios').update({ texto: novoTexto }).eq('id_comentario', id_comentario);
-                if (error) throw new Error(error.message);
-
+                if (error) throw error;
                 const index = clienteAtualParaDetalhes.comentarios.findIndex(c => String(c.id_comentario) === String(id_comentario));
                 if (index > -1) { clienteAtualParaDetalhes.comentarios[index].texto = novoTexto; delete clienteAtualParaDetalhes.comentarios[index]._editando; }
+                showToast('Comentário editado', 'success');
                 renderDetalhesClientePage();
             } catch (e) {
-                console.error(e);
+                showToast('Erro ao editar comentário.', 'error');
                 btn.classList.remove('saving'); btn.disabled = false;
             }
         }
@@ -900,13 +1024,14 @@
             btn.classList.add('saving'); btn.disabled = true;
             try {
                 const { error } = await db.from('comentarios').delete().eq('id_comentario', comentarioParaExcluir);
-                if (error) throw new Error(error.message);
-
+                if (error) throw error;
                 clienteAtualParaDetalhes.comentarios = clienteAtualParaDetalhes.comentarios.filter(c => String(c.id_comentario) !== String(comentarioParaExcluir));
                 closeModal('modalExcluirComentario');
+                showToast('Comentário excluído', 'success');
                 renderDetalhesClientePage();
             } catch (e) {
-                console.error(e);
+                showToast('Erro ao excluir comentário.', 'error');
+            } finally {
                 btn.classList.remove('saving'); btn.disabled = false;
             }
         }
@@ -931,7 +1056,7 @@
             isSavingComment = true;
             const btn = document.getElementById('btnSalvarTimeline');
             btn.querySelector('.btn-spinner').style.display = 'inline-block';
-            btn.querySelector('.btn-text').style.opacity = '0.7';
+            btn.querySelector('.btn-text').textContent = 'Salvando...';
             btn.disabled = true;
             msg.textContent = '';
 
@@ -943,20 +1068,18 @@
                     autor: currentUser.nome
                 }]);
 
-                if (error) throw new Error(error.message);
-
+                if (error) throw error;
                 document.getElementById('novoComentario').value = '';
                 atualizarIndicadorDigitacao();
-
+                showToast('Histórico registrado!', 'success');
                 await abrirDetalhesCliente(clienteAtualParaDetalhes.id_orcamento);
             } catch (e) {
-                console.error(e);
                 msg.textContent = 'Erro ao salvar: ' + e.message;
                 msg.style.color = '#ef4444';
             } finally {
                 isSavingComment = false;
                 btn.querySelector('.btn-spinner').style.display = 'none';
-                btn.querySelector('.btn-text').style.opacity = '1';
+                btn.querySelector('.btn-text').innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" fill="none" stroke-width="2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Registrar Histórico';
                 btn.disabled = false;
             }
         }
@@ -978,7 +1101,6 @@
                     clienteAtualParaDetalhes.observacoes = texto;
                 }
             } catch (e) {
-                console.error(e);
                 if (loader) {
                     loader.textContent = 'Erro ao salvar';
                     loader.style.color = '#ef4444';
@@ -1013,29 +1135,42 @@
             return opts;
         }
 
-        function filtrarPorVendedor(val) { selectedVendedor = val; currentPage = 1; carregarDados(); }
-        function changeMonth(val) { const [year, month] = val.split('-').map(Number); currentYear = year; currentMonth = month; currentDay = null; carregarDados(); }
-        function changeDay(val) { currentDay = val === 'todos' ? null : parseInt(val); carregarDados(); }
+        function renderFiltrosData(isGerente) {
+            return `<div class="filter-group">
+                ${isGerente ? `<div class="filter-wrapper"><span class="filter-icon"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></span><select class="vendedor-select" id="vendedorSelect" onchange="filtrarPorVendedor(this.value)" aria-label="Filtrar por vendedor">${buildVendedorOptions()}</select></div>` : ''}
+                <div class="filter-wrapper"><span class="filter-icon"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/></svg></span><select class="month-select" id="monthSelect" onchange="changeMonth(this.value)" aria-label="Selecionar mês">${buildMonthOptions()}</select></div>
+                <div class="filter-wrapper"><span class="filter-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/></svg></span><select class="day-select" id="daySelect" onchange="changeDay(this.value)" aria-label="Selecionar dia">${buildDayOptions()}</select></div>
+            </div>`;
+        }
+
+        async function filtrarPorVendedor(val) { selectedVendedor = val; currentPage = 1; await carregarKpisEDashboard(); atualizarTabelaPaginadaServer(); renderInicio(); }
+        async function changeMonth(val) { const [year, month] = val.split('-').map(Number); currentYear = year; currentMonth = month; currentDay = null; await carregarKpisEDashboard(); atualizarTabelaPaginadaServer(); renderInicio(); }
+        async function changeDay(val) { currentDay = val === 'todos' ? null : parseInt(val); await carregarKpisEDashboard(); atualizarTabelaPaginadaServer(); renderInicio(); }
 
         function handleSearch() {
             searchTerm = document.getElementById('searchInput')?.value || '';
             currentPage = 1;
-            atualizarTabelaPaginada();
-            renderInicio();
+            atualizarTabelaPaginadaServer();
+            // atualiza tags de pesquisa
+            const tagContainer = document.getElementById('searchTagContainer');
+            if (tagContainer) {
+                tagContainer.innerHTML = searchTerm ? `<span class="search-tag">🔍 "${escapeHtml(searchTerm)}" <span class="remove-search" onclick="clearSearch()" aria-label="Limpar busca">✕</span></span>` : '';
+            }
         }
         function clearSearch() {
             searchTerm = '';
             const inp = document.getElementById('searchInput');
             if (inp) inp.value = '';
             currentPage = 1;
-            atualizarTabelaPaginada();
-            renderInicio();
+            atualizarTabelaPaginadaServer();
+            const tagContainer = document.getElementById('searchTagContainer');
+            if (tagContainer) tagContainer.innerHTML = '';
         }
         function handleSearchClientes() {
             searchTerm = document.getElementById('searchInputClientes')?.value || '';
             renderClientes();
         }
-        function selectFilter(filter) { currentFilter = filter; currentPage = 1; atualizarTabelaPaginada(); }
+        function selectFilter(filter) { currentFilter = filter; currentPage = 1; atualizarTabelaPaginadaServer(); }
 
         function buildProdutosOptionsDatalist() {
             if (todosProdutos.length === 0) return '';
@@ -1048,6 +1183,7 @@
             
             const orcadosCount = total - fechados;
             
+            if(donutChartInstance) { donutChartInstance.destroy(); }
             donutChartInstance = new Chart(ctxDonut, {
                 type: 'doughnut',
                 data: {
@@ -1090,6 +1226,7 @@
 
             const ctxBar = document.getElementById('barChartCanvas');
             if (ctxBar && historicoFaturamento.length > 0) {
+                if(barChartInstance) { barChartInstance.destroy(); }
                 barChartInstance = new Chart(ctxBar, {
                     type: 'bar',
                     data: {
@@ -1115,9 +1252,7 @@
                                 padding: 10,
                                 cornerRadius: 6,
                                 callbacks: {
-                                    label: function(ctx) {
-                                        return 'R$ ' + ctx.raw.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
-                                    }
+                                    label: function(ctx) { return 'R$ ' + ctx.raw.toLocaleString('pt-BR', { minimumFractionDigits: 2 }); }
                                 }
                             }
                         },
@@ -1125,9 +1260,7 @@
                             y: {
                                 beginAtZero: true,
                                 ticks: {
-                                    callback: function(value) {
-                                        return value >= 1000 ? 'R$ ' + (value / 1000).toFixed(0) + 'k' : 'R$ ' + value;
-                                    },
+                                    callback: function(value) { return value >= 1000 ? 'R$ ' + (value / 1000).toFixed(0) + 'k' : 'R$ ' + value; },
                                     font: { size: 10, family: 'Inter' },
                                     maxTicksLimit: 5
                                 },
@@ -1145,10 +1278,7 @@
         }
 
         function tentarRenderizarGraficos(total, fechados, tentativas = 0) {
-            if (tentativas > 5) {
-                console.error('Não foi possível renderizar os gráficos após múltiplas tentativas.');
-                return;
-            }
+            if (tentativas > 5) return;
             const donutCanvas = document.getElementById('donutCanvas');
             if (!donutCanvas) {
                 setTimeout(() => tentarRenderizarGraficos(total, fechados, tentativas + 1), 300);
@@ -1160,9 +1290,9 @@
         function buildNotifications() {
             const hoje = new Date().toISOString().split('T')[0];
             const notificacoes = [];
-            const isEmAberto = (s) => ['Em Negociação', 'Contato Inicial', 'Negociação de Valores', 'Aguardando Decisão'].includes(s);
-            const agendadosHoje = allOrcamentos.filter(o => o.data_contato === hoje && isEmAberto(o.status));
-            const atrasados = allOrcamentos.filter(o => o.data_contato && o.data_contato < hoje && isEmAberto(o.status));
+            const isEmAberto = (s) => [STATUS.EM_NEGOCIACAO, STATUS.CONTATO_INICIAL, STATUS.NEGOCIACAO, STATUS.AGUARDANDO].includes(s);
+            const agendadosHoje = kpisMensais.filter(o => o.data_contato === hoje && isEmAberto(o.status));
+            const atrasados = kpisMensais.filter(o => o.data_contato && o.data_contato < hoje && isEmAberto(o.status));
             agendadosHoje.forEach(o => notificacoes.push({ tipo: 'info', texto: `Contato agendado hoje: <strong>${escapeHtml(o.clientes?.nome_cliente || 'Cliente')}</strong>`, id: o.id_orcamento, data: o.hora_contato || 'horário não definido' }));
             atrasados.forEach(o => notificacoes.push({ tipo: 'critical', texto: `Contato atrasado: <strong>${escapeHtml(o.clientes?.nome_cliente || 'Cliente')}</strong>`, id: o.id_orcamento, data: o.data_contato || 'data não definida' }));
             
@@ -1219,30 +1349,18 @@
             dropdown.innerHTML = html;
         }
 
-        function renderFiltrosData(isGerente) {
-            return `<div class="filter-group">
-                ${isGerente ? `<div class="filter-wrapper"><span class="filter-icon"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></span><select class="vendedor-select" id="vendedorSelect" onchange="filtrarPorVendedor(this.value)" aria-label="Filtrar por vendedor">${buildVendedorOptions()}</select></div>` : ''}
-                <div class="filter-wrapper"><span class="filter-icon"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/></svg></span><select class="month-select" id="monthSelect" onchange="changeMonth(this.value)" aria-label="Selecionar mês">${buildMonthOptions()}</select></div>
-                <div class="filter-wrapper"><span class="filter-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/></svg></span><select class="day-select" id="daySelect" onchange="changeDay(this.value)" aria-label="Selecionar dia">${buildDayOptions()}</select></div>
-            </div>`;
-        }
-
         function classToFormatStatus(status) {
             const map = { 'Contato Inicial': 'contato-inicial', 'Negociação de Valores': 'negociacao-valores', 'Aguardando Decisão': 'aguardando-decisao', 'Vendido': 'vendido', 'Fechado': 'fechado', 'Perdido': 'perdido', 'Declinado': 'declinado', 'Pós-Venda': 'pos-venda', 'Em Negociação': 'em-atendimento' };
             return map[status] || 'em-atendimento';
         }
 
         function renderInicio() {
-            // Limpa as instâncias antigas dos gráficos para evitar o bug visual ao redesenhar o canvas.
-            if (donutChartInstance) { donutChartInstance.destroy(); donutChartInstance = null; }
-            if (barChartInstance) { barChartInstance.destroy(); barChartInstance = null; }
-
             const main = document.getElementById('mainContent');
-            const dados = allOrcamentos;
+            const dados = kpisMensais;
             const total = dados.length;
-            const fechadosArr = dados.filter(o => o.status === 'Fechado' || o.status === 'Vendido');
+            const fechadosArr = dados.filter(o => o.status === STATUS.FECHADO || o.status === STATUS.VENDIDO);
             const fechados = fechadosArr.length;
-            const negociacao = dados.filter(o => ['Em Negociação', 'Contato Inicial', 'Negociação de Valores', 'Aguardando Decisão'].includes(o.status)).length;
+            const negociacao = dados.filter(o => [STATUS.EM_NEGOCIACAO, STATUS.CONTATO_INICIAL, STATUS.NEGOCIACAO, STATUS.AGUARDANDO].includes(o.status)).length;
             const valorVendido = fechadosArr.reduce((s, o) => s + parseFloat(o.valor_orcado || 0), 0);
             const conversao = total ? Math.round((fechados / total) * 100) : 0;
             const metaAtual = calcularMetaTotal();
@@ -1269,9 +1387,9 @@
             let rankingHtml = '';
             if (isGerente) {
                 if (todosVendedores.length > 0) {
-                    const maxValor = Math.max(1, ...todosVendedores.map(v => dados.filter(o => o.id_usuario === v.id_usuario && (o.status === 'Fechado' || o.status === 'Vendido')).reduce((s, o) => s + parseFloat(o.valor_orcado || 0), 0)));
+                    const maxValor = Math.max(1, ...todosVendedores.map(v => dados.filter(o => o.id_usuario === v.id_usuario && (o.status === STATUS.FECHADO || o.status === STATUS.VENDIDO)).reduce((s, o) => s + parseFloat(o.valor_orcado || 0), 0)));
                     const ranking = todosVendedores.map(v => {
-                        const vendido = dados.filter(o => o.id_usuario === v.id_usuario && (o.status === 'Fechado' || o.status === 'Vendido')).reduce((s, o) => s + parseFloat(o.valor_orcado || 0), 0);
+                        const vendido = dados.filter(o => o.id_usuario === v.id_usuario && (o.status === STATUS.FECHADO || o.status === STATUS.VENDIDO)).reduce((s, o) => s + parseFloat(o.valor_orcado || 0), 0);
                         return { nome: v.nome, vendido, pct: maxValor ? (vendido / maxValor) * 100 : 0 };
                     }).sort((a, b) => b.vendido - a.vendido);
                     rankingHtml = `<div class="chart-card"><h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg> Top Vendedores</h3><ul class="ranking-list">${ranking.map((r, i) => `<li class="ranking-item"><span class="ranking-pos">#${i + 1}</span><span class="ranking-nome">${escapeHtml(r.nome)}</span><div class="ranking-bar-outer"><div class="ranking-bar-inner" style="width:${r.pct}%;"><span>${Math.round(r.pct)}%</span></div></div><span class="ranking-valor">R$ ${r.vendido.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}</span></li>`).join('')}</ul></div>`;
@@ -1288,16 +1406,19 @@
             const colVendedor = isGerente ? '<th>Vendedor</th>' : '';
             const searchTagHtml = searchTerm ? `<span class="search-tag">🔍 "${escapeHtml(searchTerm)}" <span class="remove-search" onclick="clearSearch()" aria-label="Limpar busca">✕</span></span>` : '';
 
-            const tabelaHtml = `<div class="table-card"><div class="table-card-header"><h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/></svg> Carteira de Negociações</h3><div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">${searchTagHtml}<input type="text" class="search-input" placeholder="Buscar cliente..." id="searchInput" oninput="handleSearch()" value="${escapeHtml(searchTerm)}" aria-label="Buscar cliente">
+            const tabelaHtml = `<div class="table-card"><div class="table-card-header"><h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/></svg> Carteira de Negociações</h3><div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+            <div id="searchTagContainer">${searchTagHtml}</div>
+            <input type="text" class="search-input" placeholder="Buscar cliente..." id="searchInput" onchange="handleSearch()" onkeyup="if(event.key === 'Enter') handleSearch()" value="${escapeHtml(searchTerm)}" aria-label="Buscar cliente">
             <select class="form-input" style="width:auto; padding:8px 16px; border-radius:20px; font-size:var(--font-sm);" id="listFilterSelect" onchange="selectFilter(this.value)" aria-label="Filtrar por status">
                 <option value="todos" ${currentFilter === 'todos' ? 'selected' : ''}>Todos</option>
-                <option value="Contato Inicial" ${currentFilter === 'Contato Inicial' ? 'selected' : ''}>Contato Inicial</option>
-                <option value="Negociação de Valores" ${currentFilter === 'Negociação de Valores' ? 'selected' : ''}>Negociação de Valores</option>
-                <option value="Aguardando Decisão" ${currentFilter === 'Aguardando Decisão' ? 'selected' : ''}>Aguardando Decisão</option>
-                <option value="Vendido" ${currentFilter === 'Vendido' ? 'selected' : ''}>Vendido</option>
-                <option value="Perdido" ${currentFilter === 'Perdido' ? 'selected' : ''}>Perdido</option>
-                <option value="Pós-Venda" ${currentFilter === 'Pós-Venda' ? 'selected' : ''}>Pós-Venda</option>
+                <option value="Contato Inicial" ${currentFilter === STATUS.CONTATO_INICIAL ? 'selected' : ''}>Contato Inicial</option>
+                <option value="Negociação de Valores" ${currentFilter === STATUS.NEGOCIACAO ? 'selected' : ''}>Negociação de Valores</option>
+                <option value="Aguardando Decisão" ${currentFilter === STATUS.AGUARDANDO ? 'selected' : ''}>Aguardando Decisão</option>
+                <option value="Vendido" ${currentFilter === STATUS.VENDIDO ? 'selected' : ''}>Vendido</option>
+                <option value="Perdido" ${currentFilter === STATUS.PERDIDO ? 'selected' : ''}>Perdido</option>
+                <option value="Pós-Venda" ${currentFilter === STATUS.POS_VENDA ? 'selected' : ''}>Pós-Venda</option>
             </select>
+            <button class="btn-export" onclick="exportarCSV()"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Exportar CSV</button>
             </div></div><table><thead><tr><th>Cliente</th><th>Produto</th>${colVendedor}<th>Status</th><th>Data</th><th>Valor</th></tr></thead><tbody id="tableBody"></tbody></table><div class="pagination" id="paginationContainer"></div></div>`;
 
             let chartsRowHtml = '';
@@ -1314,17 +1435,12 @@
                 tentarRenderizarGraficos(total, fechados);
             });
 
-            atualizarTabelaPaginada();
-            setTimeout(() => {
-                const notificacoes = buildNotifications();
-                const alertCount = notificacoes.filter(n => n.id !== null).length;
-                renderNotificationBadge(alertCount);
-            }, 300);
+            atualizarTabelaPaginadaServer();
         }
 
         function renderAgendaDia() {
             const hoje = new Date().toISOString().split('T')[0];
-            const agendados = allOrcamentos.filter(o => { return o.data_contato === hoje && ['Em Negociação', 'Contato Inicial', 'Negociação de Valores', 'Aguardando Decisão'].includes(o.status); });
+            const agendados = kpisMensais.filter(o => { return o.data_contato === hoje && [STATUS.EM_NEGOCIACAO, STATUS.CONTATO_INICIAL, STATUS.NEGOCIACAO, STATUS.AGUARDANDO].includes(o.status); });
             const isGerente = currentUser.perfil === 'Gerente' || currentUser.perfil === 'Administrador' || currentUser.perfil === 'Admin';
             let html = `<header class="dashboard-header"><h1>Agenda do Dia</h1><div class="header-controls">${isGerente ? `<div class="filter-wrapper"><span class="filter-icon"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></span><select class="vendedor-select" id="vendedorSelectAgenda" onchange="filtrarPorVendedor(this.value)">${buildVendedorOptions()}</select></div>` : ''}<div class="filter-wrapper"><span class="filter-icon"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/></svg></span><select class="month-select" onchange="changeMonth(this.value)">${buildMonthOptions()}</select></div><div class="filter-wrapper"><span class="filter-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/></svg></span><select class="day-select" onchange="changeDay(this.value)">${buildDayOptions()}</select></div><div class="header-notification-area"><button class="btn-notification" id="btnNotification" onclick="event.stopPropagation(); toggleNotifications();" aria-label="Notificações"><svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg><span class="notification-badge" id="notificationBadgeCount"></span></button></div></div></header>`;
             if (agendados.length === 0) { html += '<div class="chart-card" style="text-align:center; padding:48px; color:var(--text-muted);">Nenhum contato agendado para hoje.</div>'; }
@@ -1346,7 +1462,6 @@
                     if (id) abrirDetalhesCliente(id);
                 });
             });
-            setTimeout(() => { const notificacoes = buildNotifications(); const alertCount = notificacoes.filter(n => n.id !== null).length; renderNotificationBadge(alertCount); }, 300);
         }
 
         function renderClientes() {
@@ -1354,7 +1469,7 @@
             let html = `<header class="dashboard-header"><h1>Todos os Clientes</h1><div class="header-controls">${isGerente ? `<div class="filter-wrapper"><span class="filter-icon"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></span><select class="vendedor-select" onchange="filtrarPorVendedor(this.value)">${buildVendedorOptions()}</select></div>` : ''}<div class="filter-wrapper"><span class="filter-icon"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/></svg></span><select class="month-select" onchange="changeMonth(this.value)">${buildMonthOptions()}</select></div><div class="filter-wrapper"><span class="filter-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/></svg></span><select class="day-select" onchange="changeDay(this.value)">${buildDayOptions()}</select></div><div class="header-notification-area"><button class="btn-notification" id="btnNotification" onclick="event.stopPropagation(); toggleNotifications();" aria-label="Notificações"><svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg><span class="notification-badge" id="notificationBadgeCount"></span></button></div></div></header>`;
             html += '<div class="table-card"><div style="margin-bottom:12px;"><input type="text" class="search-input" placeholder="Buscar cliente..." id="searchInputClientes" oninput="handleSearchClientes()" value="' + escapeHtml(searchTerm) + '"></div><table><thead><tr><th>Cliente</th><th>WhatsApp</th><th>Último Produto</th>' + (isGerente ? '<th>Vendedor</th>' : '') + '<th>Status</th></tr></thead><tbody>';
             const mapa = {};
-            allOrcamentos.forEach(o => { const nome = o.clientes?.nome_cliente || 'Cliente'; if (!mapa[nome]) mapa[nome] = o; });
+            kpisMensais.forEach(o => { const nome = o.clientes?.nome_cliente || 'Cliente'; if (!mapa[nome]) mapa[nome] = o; });
             let lista = Object.entries(mapa);
             if (searchTerm) lista = lista.filter(([nome]) => nome.toLowerCase().includes(searchTerm.toLowerCase()));
             lista.forEach(([nome, o]) => {
@@ -1368,7 +1483,6 @@
                     if (id) abrirDetalhesCliente(id);
                 });
             });
-            setTimeout(() => { const notificacoes = buildNotifications(); const alertCount = notificacoes.filter(n => n.id !== null).length; renderNotificationBadge(alertCount); }, 300);
         }
 
         function renderMetas() {
@@ -1383,46 +1497,37 @@
 
         async function abrirDetalhesCliente(id) {
             if (!id) {
-                console.error('ID do orçamento inválido:', id);
-                document.getElementById('mainContent').innerHTML = '<div style="padding: 40px; text-align: center;">Erro: Cliente ou Orçamento não encontrado.</div>';
+                showToast('Erro: Cliente ou Orçamento não encontrado.', 'error');
                 return;
             }
 
-            let orc = allOrcamentos.find(o => String(o.id_orcamento) === String(id));
-            if (!orc) {
-                try {
-                    const { data, error } = await db.from('orcamentos')
-                        .select('*, clientes(nome_cliente, whatsapp), usuarios(nome)')
-                        .eq('id_orcamento', id)
-                        .single();
-                    if (error || !data) throw new Error('Orçamento não encontrado.');
-                    orc = data;
-                    if (!allOrcamentos.find(o => String(o.id_orcamento) === String(id))) allOrcamentos.unshift(orc);
-                } catch (e) {
-                    console.error(e);
-                    document.getElementById('mainContent').innerHTML = '<div style="padding: 40px; text-align: center;">O registro deste cliente pode ter sido removido ou você não tem acesso.</div>';
-                    return;
-                }
-            }
-
-            clienteAtualParaDetalhes = orc;
-            previousView = currentView;
-            currentView = 'detalhes_cliente';
-            showLoader();
             try {
-                const { data: comentarios, error } = await db.from('comentarios')
+                showLoader();
+                const { data, error } = await db.from('orcamentos')
+                    .select('*, clientes(nome_cliente, whatsapp), usuarios(nome)')
+                    .eq('id_orcamento', id)
+                    .single();
+                    
+                if (error || !data) throw new Error('Orçamento não encontrado no banco.');
+                clienteAtualParaDetalhes = data;
+                
+                const { data: comentarios, error: erroComent } = await db.from('comentarios')
                     .select('*')
                     .eq('id_orcamento', id)
                     .order('data_criacao', { ascending: true });
-                if (error) throw error;
+                    
+                if (erroComent) throw erroComent;
                 clienteAtualParaDetalhes.comentarios = comentarios || [];
+                
+                previousView = currentView;
+                currentView = 'detalhes_cliente';
+                setUltimaVisita(id);
+                renderDetalhesClientePage();
             } catch (e) {
-                console.error('Erro ao buscar comentários:', e);
-                clienteAtualParaDetalhes.comentarios = [];
+                showToast('O registro deste cliente pode ter sido removido ou você não tem acesso.', 'error');
+            } finally {
+                hideLoader();
             }
-            setUltimaVisita(id);
-            renderDetalhesClientePage();
-            hideLoader();
         }
 
         function renderDetalhesClientePage() {
@@ -1432,9 +1537,8 @@
             const isGerente = currentUser.perfil === 'Gerente' || currentUser.perfil === 'Administrador' || currentUser.perfil === 'Admin';
             const main = document.getElementById('mainContent');
             let actionsHtml = '';
-            const isOpenStatus = ['Em Negociação', 'Contato Inicial', 'Negociação de Valores', 'Aguardando Decisão'].includes(orc.status);
+            const isOpenStatus = [STATUS.EM_NEGOCIACAO, STATUS.CONTATO_INICIAL, STATUS.NEGOCIACAO, STATUS.AGUARDANDO].includes(orc.status);
             
-            // Aqui as aspas em volta do orc.id_orcamento corrigem o SyntaxError do UUID
             if (isOpenStatus && !isGerente) {
                 actionsHtml += `<button class="btn-primary-action" onclick="abrirConfirmaFechamento('${orc.id_orcamento}')">Fechar Venda</button>`;
                 actionsHtml += `<button class="btn-danger-ghost" onclick="abrirMotivoPerda('${orc.id_orcamento}')">Perder Venda</button>`;
@@ -1474,7 +1578,7 @@
                         </label>
                         <textarea id="obsFixaCliente" class="form-input" rows="3" placeholder="Ex: Cliente prefere contato de manhã..." onblur="salvarObservacaoFixa('${orc.id_orcamento}')">${escapeHtml(orc.observacoes || '')}</textarea>
                     </div>
-                    <a href="https://wa.me/55${whats}" target="_blank" class="btn-whatsapp-full"><svg class="btn-whatsapp-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg> Iniciar Conversa</a>
+                    <a href="https://wa.me/55${whats}" target="_blank" class="btn-whatsapp-full"><svg class="btn-whatsapp-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg> Iniciar Conversa WhatsApp</a>
                 </div>
                 <div class="info-card">
                     <h4 class="info-card-title"><svg class="info-card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> Agendar Contato</h4>
@@ -1503,7 +1607,41 @@
             </div>`;
         }
 
-        function voltarDetalhes() { currentView = previousView; navigateTo(currentView); }
+        function abrirModalMeta(id, nome, valorAtual) {
+            idMetaEdicao = id;
+            document.getElementById('inputMetaValor').value = 'R$ ' + valorAtual.toLocaleString('pt-BR');
+            document.getElementById('errMeta').textContent = '';
+            openModal('modalEditarMeta');
+            document.getElementById('inputMetaValor').focus();
+        }
+
+        async function salvarNovaMeta() {
+            const raw = document.getElementById('inputMetaValor').value.replace(/[^\d,]/g, '').replace(',', '.');
+            const valor = parseFloat(raw);
+            if (!valor || valor <= 0) { document.getElementById('errMeta').textContent = 'Valor inválido.'; return; }
+            const btn = document.getElementById('btnSalvarMeta');
+            btn.classList.add('saving'); btn.disabled = true;
+            try {
+                const { error } = await db.from('usuarios').update({ meta_mensal: Math.round(valor) }).eq('id_usuario', idMetaEdicao);
+                if (error) throw new Error(error.message);
+
+                const userIndex = todosUsuarios.findIndex(u => u.id_usuario === idMetaEdicao);
+                if (userIndex > -1) todosUsuarios[userIndex].meta_mensal = Math.round(valor);
+                const vendIndex = todosVendedores.findIndex(v => v.id_usuario === idMetaEdicao);
+                if (vendIndex > -1) todosVendedores[vendIndex].meta_mensal = Math.round(valor);
+
+                if (idMetaEdicao === currentUser.id_usuario) {
+                    currentUser.meta_mensal = Math.round(valor);
+                }
+
+                closeModal('modalEditarMeta');
+                showToast('Meta atualizada com sucesso', 'success');
+                renderMetas();
+            } catch (e) {
+                document.getElementById('errMeta').textContent = 'Erro ao salvar: ' + e.message;
+                btn.classList.remove('saving'); btn.disabled = false;
+            }
+        }
 
         function formatCurrency(value) { let num = value.replace(/\D/g, ''); num = (parseInt(num) || 0).toString(); return 'R$ ' + parseInt(num.slice(0, -2) || '0').toLocaleString('pt-BR') + ',' + num.slice(-2).padStart(2, '0'); }
         function parseCurrency(value) { return parseFloat(value.replace(/[^\d,]/g, '').replace(',', '.')) || 0; }
@@ -1633,28 +1771,20 @@
             
             try {
                 let idClienteSalvo;
-                const { data: clienteExistente, error: erroBusca } = await db.from('clientes')
-                    .select('id_cliente')
-                    .eq('whatsapp', whats)
-                    .maybeSingle();
+                const { data: clienteExistente, error: erroBusca } = await db.from('clientes').select('id_cliente').eq('whatsapp', whats).maybeSingle();
 
                 if (erroBusca) throw new Error("Erro ao buscar cliente: " + erroBusca.message);
 
                 if (clienteExistente) {
                     idClienteSalvo = clienteExistente.id_cliente;
                 } else {
-                    const { data: novoCliente, error: erroCliente } = await db.from('clientes')
-                        .insert([{ nome_cliente: nome, whatsapp: whats }])
-                        .select()
-                        .single();
+                    const { data: novoCliente, error: erroCliente } = await db.from('clientes').insert([{ nome_cliente: nome, whatsapp: whats }]).select().single();
                     if (erroCliente) throw new Error("Erro no Cadastro do Cliente: " + erroCliente.message);
                     idClienteSalvo = novoCliente.id_cliente;
                 }
 
                 let obsFinal = observacoes || '';
-                if (origem) {
-                    obsFinal = `[Origem: ${origem}]\n${obsFinal}`;
-                }
+                if (origem) { obsFinal = `[Origem: ${origem}]\n${obsFinal}`; }
 
                 const { data: orc, error: erroOrc } = await db.from('orcamentos')
                     .insert([{ 
@@ -1662,7 +1792,7 @@
                         id_usuario: currentUser.id_usuario, 
                         modelo_colchao: modeloFinalCombinado, 
                         valor_orcado: valorTotalCalculado, 
-                        status: 'Contato Inicial', 
+                        status: STATUS.CONTATO_INICIAL, 
                         interesse: interesse, 
                         observacoes: obsFinal.trim() || null, 
                         data_contato: dataContato, 
@@ -1673,10 +1803,11 @@
                 
                 if (erroOrc) throw new Error("Erro no Orçamento: " + erroOrc.message);
                 
-                carregarDados(true).then(() => { abrirDetalhesCliente(orc.id_orcamento); });
+                showToast('Orçamento salvo com sucesso!', 'success');
+                await carregarKpisEDashboard();
+                abrirDetalhesCliente(orc.id_orcamento);
             } catch (error) { 
-                console.error(error); 
-                document.getElementById('modalMsg').innerHTML = `<span style="color: #ef4444; font-size: 13px; font-weight: 600;">${escapeHtml(error.message)}</span>`; 
+                showToast(error.message, 'error');
                 btn.classList.remove('saving'); 
                 btn.disabled = false; 
                 btn.querySelector('.btn-text').textContent = 'Salvar Orçamento'; 
@@ -1693,10 +1824,10 @@
 
         function abrirConfirmaFechamento(id) { 
             idOrcamentoParaPerder = null; 
-            clienteAtualParaDetalhes = allOrcamentos.find(o => String(o.id_orcamento) === String(id)); 
+            clienteAtualParaDetalhes = kpisMensais.find(o => String(o.id_orcamento) === String(id)) || clienteAtualParaDetalhes; 
             openModal('modalConfirmaFechamento'); 
             document.getElementById('btnConfirmaFechar').onclick = function() { 
-                acaoDetalhes(id, 'Vendido'); 
+                acaoDetalhes(id, STATUS.VENDIDO); 
                 closeModal('modalConfirmaFechamento'); 
             }; 
         }
@@ -1704,6 +1835,9 @@
         async function confirmarPerda(event) {
             event.preventDefault();
             if (isConfirmingPerda) return;
+            
+            const idFinal = idOrcamentoParaPerder || clienteAtualParaDetalhes?.id_orcamento;
+            if(!idFinal) return showToast('Erro: Orçamento não encontrado.', 'error');
             
             const motivoSelect = document.getElementById('motivoPerdaSelect').value;
             const motivoTexto = document.getElementById('motivoPerda').value.trim();
@@ -1719,16 +1853,22 @@
             const motivoFinal = motivoTexto ? `${motivoSelect} - ${motivoTexto}` : motivoSelect;
 
             try {
-                const { error: err1 } = await db.from('orcamentos').update({ status: 'Perdido' }).eq('id_orcamento', idOrcamentoParaPerder);
+                const { error: err1 } = await db.from('orcamentos').update({ status: STATUS.PERDIDO }).eq('id_orcamento', idFinal);
                 if (err1) throw new Error(err1.message);
-                const { error: err2 } = await db.from('comentarios').insert([{ id_orcamento: idOrcamentoParaPerder, texto: motivoFinal, tipo: 'Perda', autor: currentUser.nome }]);
+                const { error: err2 } = await db.from('comentarios').insert([{ id_orcamento: idFinal, texto: motivoFinal, tipo: 'Perda', autor: currentUser.nome }]);
                 if (err2) throw new Error(err2.message);
+                
                 closeModal('modalMotivoPerda');
-                const idCliente = clienteAtualParaDetalhes?.id_orcamento || idOrcamentoParaPerder;
-                await abrirDetalhesCliente(idCliente);
-                carregarDados(true);
-            } catch (e) { console.error(e); errMotivo.textContent = 'Erro ao salvar: ' + e.message; }
-            finally { isConfirmingPerda = false; btn.innerHTML = 'Confirmar Perda'; btn.disabled = false;}
+                showToast('Venda registrada como Perdida.', 'info');
+                await carregarKpisEDashboard();
+                abrirDetalhesCliente(idFinal);
+            } catch (e) { 
+                errMotivo.textContent = 'Erro ao salvar: ' + e.message; 
+            } finally { 
+                isConfirmingPerda = false; 
+                btn.innerHTML = 'Confirmar Perda'; 
+                btn.disabled = false;
+            }
         }
 
         async function acaoDetalhes(id, status) {
@@ -1736,8 +1876,13 @@
             try {
                 const { error } = await db.from('orcamentos').update({ status }).eq('id_orcamento', id);
                 if (error) throw new Error(error.message);
-                voltarDetalhes(); carregarDados(true);
-            } catch(e) { console.error(e); }
+                showToast(`Venda alterada para: ${status}`, 'success');
+                voltarDetalhes(); 
+                await carregarKpisEDashboard();
+                if(currentView === 'inicio') atualizarTabelaPaginadaServer();
+            } catch(e) { 
+                showToast('Falha ao atualizar o status.', 'error');
+            }
         }
 
         async function agendarContato() {
@@ -1746,26 +1891,35 @@
             const tipo = document.getElementById('agendarTipo').value;
             const obs = document.getElementById('agendarObservacao')?.value?.trim() || '';
             const tipoErro = document.getElementById('agendarTipoErro');
-            const msg = document.getElementById('agendarMsg');
-            if (!data) { msg.textContent = 'Selecione uma data.'; return; }
+            
+            if (!data) return showToast('Selecione uma data para o agendamento.', 'error');
             if (!tipo) { tipoErro.textContent = 'Selecione o tipo de contato.'; document.getElementById('agendarTipo').style.borderColor = '#ef4444'; return; }
             else { tipoErro.textContent = ''; document.getElementById('agendarTipo').style.borderColor = 'var(--border-light)'; }
+            
             const btn = document.getElementById('btnConfirmarAgendamento');
             btn.querySelector('.btn-spinner').style.display = 'inline-block';
-            btn.querySelector('.btn-text').style.opacity = '0.7';
+            btn.querySelector('.btn-text').textContent = 'Salvando...';
             btn.disabled = true;
             try {
                 const { error: err1 } = await db.from('orcamentos').update({ data_contato: data, hora_contato: hora, observacao_agendamento: obs }).eq('id_orcamento', clienteAtualParaDetalhes.id_orcamento);
                 if (err1) throw new Error(err1.message);
+                
                 const dataFormatada = new Date(data + 'T00:00:00').toLocaleDateString('pt-BR');
                 let texto = `Retorno agendado para ${dataFormatada}${hora ? ' às ' + hora : ''} • ${tipo}`;
                 if (obs) texto += `\nLembrete: ${obs}`;
+                
                 const { error: err2 } = await db.from('comentarios').insert([{ id_orcamento: clienteAtualParaDetalhes.id_orcamento, texto: texto, tipo: 'Sistema', autor: currentUser.nome }]);
                 if (err2) throw new Error(err2.message);
+                
+                showToast('Agendamento confirmado!', 'success');
                 await abrirDetalhesCliente(clienteAtualParaDetalhes.id_orcamento);
-                const newMsg = document.getElementById('agendarMsg');
-                if (newMsg) { newMsg.textContent = 'Agendado com sucesso!'; newMsg.style.color = 'var(--brand-blue)'; setTimeout(() => { const m = document.getElementById('agendarMsg'); if(m) m.textContent = ''; }, 2500); }
-            } catch (e) { console.error(e); msg.textContent = 'Erro ao agendar: ' + e.message; msg.style.color = '#ef4444'; btn.querySelector('.btn-spinner').style.display = 'none'; btn.querySelector('.btn-text').style.opacity = '1'; btn.disabled = false; }
+            } catch (e) { 
+                showToast('Erro ao agendar: ' + e.message, 'error'); 
+            } finally {
+                btn.querySelector('.btn-spinner').style.display = 'none'; 
+                btn.querySelector('.btn-text').textContent = 'Confirmar Agendamento'; 
+                btn.disabled = false; 
+            }
         }
 
         function renderAdminInicio(main) {
@@ -1796,106 +1950,15 @@
             html += `</tbody></table></div>`; main.innerHTML = html;
         }
 
-        let idUsuarioParaExcluir = null;
-
-        function abrirModalExcluirUsuarioAdmin(id, nome) {
-            idUsuarioParaExcluir = id;
-            document.getElementById('nomeUsuarioExcluir').textContent = nome;
-            document.getElementById('errExcluirUsuario').textContent = '';
-            openModal('modalExcluirUsuarioAdmin');
-        }
-
-        async function confirmarExclusaoUsuario() {
-            if (!idUsuarioParaExcluir) return;
-            const err = document.getElementById('errExcluirUsuario');
-            const btn = document.getElementById('btnConfirmarExclusaoUsuario');
-            btn.disabled = true; btn.innerHTML = 'Excluindo...';
-            try {
-                const { error } = await db.from('usuarios').delete().eq('id_usuario', idUsuarioParaExcluir);
-                if (error) throw new Error('Não é possível excluir. O usuário possui orçamentos atrelados. Recomendamos inativá-lo.');
-                const { data: todos_usr } = await db.from('usuarios').select('*').order('nome');
-                todosUsuarios = todos_usr || []; todosVendedores = todosUsuarios.filter(u => u.perfil === 'Vendedor');
-                closeModal('modalExcluirUsuarioAdmin');
-                renderAdminUsuarios(document.getElementById('mainContent'));
-            } catch (e) { console.error(e); err.textContent = 'Erro: ' + e.message; }
-            finally { btn.innerHTML = 'Excluir Definitivamente'; btn.disabled = false; }
-        }
-
-        function atualizarTabelaPaginada() {
-            const tbody = document.getElementById('tableBody');
-            const pagination = document.getElementById('paginationContainer');
-            if (!tbody || !pagination) return;
-
-            let dadosBase = [...allOrcamentos];
-            if (currentFilter !== 'todos') {
-                dadosBase = dadosBase.filter(o => {
-                    const s = o.status;
-                    if (currentFilter === 'Vendido' || currentFilter === 'Pós-Venda') return s === 'Fechado' || s === 'Vendido' || s === 'Pós-Venda';
-                    if (currentFilter === 'Perdido') return s === 'Declinado' || s === 'Perdido';
-                    if (['Contato Inicial', 'Negociação de Valores', 'Aguardando Decisão'].includes(currentFilter)) return s === currentFilter || s === 'Em Negociação';
-                    return s === currentFilter;
-                });
-            }
-            if (searchTerm) dadosBase = dadosBase.filter(o => (o.clientes?.nome_cliente || '').toLowerCase().includes(searchTerm.toLowerCase()));
-
-            const totalPages = Math.ceil(dadosBase.length / ITEMS_PER_PAGE) || 1;
-            if (currentPage > totalPages) currentPage = totalPages;
-            const inicio = (currentPage - 1) * ITEMS_PER_PAGE;
-            const pagina = dadosBase.slice(inicio, inicio + ITEMS_PER_PAGE);
-
-            const isGerente = currentUser.perfil === 'Gerente' || currentUser.perfil === 'Administrador' || currentUser.perfil === 'Admin';
-
-            tbody.innerHTML = '';
-            if (pagina.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="${isGerente ? '6' : '5'}" style="text-align:center; padding:24px;">Nenhum registro.</td></tr>`;
-            } else {
-                pagina.forEach(o => {
-                    const tr = document.createElement('tr');
-                    tr.className = 'clickable-row';
-                    tr.setAttribute('data-id', o.id_orcamento);
-                    tr.style.cursor = 'pointer';
-                    tr.addEventListener('click', function() {
-                        abrirDetalhesCliente(o.id_orcamento);
-                    });
-
-                    const nome = o.clientes?.nome_cliente || 'Cliente';
-                    const dataRelativa = timeAgo(o.data_criacao);
-                    const dataCompleta = o.data_criacao ? new Date(o.data_criacao).toLocaleDateString('pt-BR') : '-';
-                    const status = o.status || 'Contato Inicial';
-
-                    tr.innerHTML = `
-                        <td><span class="client-name">${escapeHtml(nome)}</span></td>
-                        <td>${escapeHtml(o.modelo_colchao || '-')}</td>
-                        ${isGerente ? `<td>${escapeHtml(o.usuarios?.nome || '-')}</td>` : ''}
-                        <td><span class="status-tag ${classToFormatStatus(status)}">${escapeHtml(status)}</span></td>
-                        <td title="${dataCompleta}">${dataRelativa}</td>
-                        <td style="font-weight:700;">R$ ${parseFloat(o.valor_orcado || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
-                    `;
-                    tbody.appendChild(tr);
-                });
-            }
-
-            pagination.innerHTML = `
-                <button onclick="changePage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>Anterior</button>
-                <span>Página ${currentPage} de ${totalPages}</span>
-                <button onclick="changePage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>Próximo</button>
-            `;
-        }
-
-        function changePage(page) { currentPage = page; atualizarTabelaPaginada(); }
+        function voltarDetalhes() { currentView = previousView; navigateTo(currentView); }
+        function changePage(page) { currentPage = page; atualizarTabelaPaginadaServer(); }
 
         function toggleTheme() {
             document.body.classList.toggle('dark');
             localStorage.setItem('theme', document.body.classList.contains('dark') ? 'dark' : 'light');
             
-            if (donutChartInstance) {
-                donutChartInstance.destroy();
-                donutChartInstance = null;
-            }
-            if (barChartInstance) {
-                barChartInstance.destroy();
-                barChartInstance = null;
-            }
+            if (donutChartInstance) { donutChartInstance.destroy(); donutChartInstance = null; }
+            if (barChartInstance) { barChartInstance.destroy(); barChartInstance = null; }
             
             if (currentView === 'inicio') renderInicio();
             else if (currentView === 'admin_inicio') renderAdminInicio(document.getElementById('mainContent'));
@@ -1938,6 +2001,7 @@
             });
         });
 
+        // Inicia a aplicação
         checkSession();
     </script>
 </body>
