@@ -314,6 +314,12 @@
                 <div><label for="adminModPerfil">Perfil do Sistema</label><select id="adminModPerfil"><option value="Vendedor">Vendedor</option><option value="Gerente">Gerente</option><option value="Administrador">Administrador (TI)</option></select></div>
                 <div><label for="adminModStatus">Status de Acesso</label><select id="adminModStatus"><option value="Ativo">Ativo</option><option value="Inativo">Inativo</option></select></div>
             </div>
+
+            <div style="margin-top: 12px;">
+                <label for="adminModSenha">Definir Senha Inicial</label>
+                <input type="password" id="adminModSenha" placeholder="********">
+            </div>
+
             <div class="field-error" id="errAdminUsuario"></div>
             <div class="modal-btns"><button class="btn-cancelar-modal" onclick="closeModal('modalUsuarioAdmin')">Cancelar</button><button class="btn-salvar-modal" id="btnSalvarUsuarioAdmin" onclick="salvarUsuarioAdmin()"><span class="btn-spinner"></span><span class="btn-text">Salvar Usuário</span></button></div>
         </div>
@@ -645,38 +651,46 @@
             } catch(e) { showToast('Erro ao exportar relatório.', 'error'); }
         }
 
+        // NOVA FUNÇÃO salvarUsuarioAdmin
         async function salvarUsuarioAdmin() {
             const nome = document.getElementById('adminModNome').value.trim();
             const email = document.getElementById('adminModEmail').value.trim();
-            const idLoja = document.getElementById('adminModLoja').value; 
+            const loja = document.getElementById('adminModLoja').value;
             const perfil = document.getElementById('adminModPerfil').value;
             const status = document.getElementById('adminModStatus').value;
+            const senha = document.getElementById('adminModSenha').value; // Novo campo
             const err = document.getElementById('errAdminUsuario');
 
-            if (!nome) { err.textContent = 'Preencha o nome do usuário.'; return; }
-            if (!idLoja) { err.textContent = 'Selecione a loja base do vendedor.'; return; }
+            if (!nome || !email || !senha) {
+                err.textContent = 'Preencha Nome, E-mail e Senha.';
+                return;
+            }
 
             const btn = document.getElementById('btnSalvarUsuarioAdmin');
             btn.classList.add('saving'); btn.disabled = true; err.textContent = '';
 
             try {
-                if (idUsuarioEmEdicao) {
-                    const { error } = await db.from('usuarios').update({
-                        nome: nome, email: email, id_loja: idLoja, perfil: perfil, status: status
-                    }).eq('id_usuario', idUsuarioEmEdicao);
-                    if (error) throw new Error(error.message);
-                } else {
-                    const { error } = await db.from('usuarios').insert([{
-                        nome: nome, email: email, id_loja: idLoja, perfil: perfil, status: status, meta_mensal: META_PADRAO
-                    }]);
-                    if (error) throw new Error(error.message);
-                }
+                // Chamada para a sua Edge Function
+                const { data, error } = await db.functions.invoke('criar-usuario', {
+                    body: { nome, email, loja, perfil, status, senha }
+                });
 
+                if (error) throw new Error(error.message);
+
+                showToast('Usuário criado com sucesso!', 'success');
+                closeModal('modalUsuarioAdmin');
+                
+                // Atualiza a lista
                 const { data: usuarios } = await db.from('usuarios').select('*').order('nome');
-                todosUsuarios = usuarios || []; todosVendedores = todosUsuarios.filter(u => u.perfil === 'Vendedor');
-                closeModal('modalUsuarioAdmin'); renderAdminUsuarios(document.getElementById('mainContent')); showToast('Usuário salvo!', 'success');
-            } catch (e) { err.textContent = 'Erro: ' + e.message; } 
-            finally { btn.classList.remove('saving'); btn.disabled = false; }
+                todosUsuarios = usuarios || [];
+                renderAdminUsuarios(document.getElementById('mainContent'));
+                
+            } catch (e) {
+                err.textContent = 'Erro: ' + e.message;
+            } finally {
+                btn.classList.remove('saving');
+                btn.disabled = false;
+            }
         }
 
         function abrirModalUsuarioAdmin(id = null) {
@@ -688,6 +702,7 @@
             const lojaSel = document.getElementById('adminModLoja');
             const perfilSel = document.getElementById('adminModPerfil');
             const statusSel = document.getElementById('adminModStatus');
+            const senhaInput = document.getElementById('adminModSenha');
 
             lojaSel.innerHTML = '<option value="">Selecione a loja...</option>';
             listaLojas.forEach(l => { lojaSel.innerHTML += `<option value="${l.id_loja}">${escapeHtml(l.nome_loja)}</option>`; });
@@ -697,9 +712,11 @@
                 title.textContent = 'Editar Usuário';
                 nomeInput.value = user.nome || ''; emailInput.value = user.email || '';
                 lojaSel.value = user.id_loja || ''; perfilSel.value = user.perfil || 'Vendedor'; statusSel.value = user.status || 'Ativo';
+                senhaInput.value = ''; // não exibir senha ao editar
             } else {
                 title.textContent = 'Novo Usuário';
                 nomeInput.value = ''; emailInput.value = ''; lojaSel.value = ''; perfilSel.value = 'Vendedor'; statusSel.value = 'Ativo';
+                senhaInput.value = '';
             }
             openModal('modalUsuarioAdmin');
         }
@@ -717,7 +734,6 @@
             if (!currentUser || currentUser.perfil !== 'Vendedor') { historicoFaturamento = []; return; }
             const hoje = new Date(); historicoFaturamento = [];
             try {
-                // Buscamos os UUIDs que representam vendas fechadas
                 const uuidsFechados = mapStatusUUID.filter(s => [STATUS.FECHADO, STATUS.VENDIDO].includes(s.nome)).map(s => s.id_status);
 
                 for (let i = 5; i >= 0; i--) {
@@ -1334,7 +1350,6 @@
                     
                 if (error || !data) throw new Error('Orçamento não encontrado.');
                 
-                // Mapeia para o frontend ler os textos
                 data.status = data.status_orcamento ? data.status_orcamento.nome : STATUS.CONTATO_INICIAL;
                 data.interesse = data.niveis_interesse ? data.niveis_interesse.nome : null;
 
