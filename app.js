@@ -192,6 +192,48 @@ const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
         // fuso do navegador/servidor. Evita o bug de "toISOString()" (que é sempre UTC) fazer
         // a data virar o dia seguinte entre 21h e 23h59 no horário de Brasília.
         function getHojeBrasilia() { return new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' }); }
+
+        // Timestamp completo (data + hora) já ajustado para o fuso de Brasília,
+        // para ser usado em qualquer coluna timestamp (ex: data_fechamento) em vez
+        // de new Date().toISOString(), que grava em UTC e pode "pular" o dia
+        // perto da meia-noite em horário de Brasília.
+        function getAgoraBrasiliaISO() {
+            const agora = new Date();
+            const partes = new Intl.DateTimeFormat('en-CA', {
+                timeZone: 'America/Sao_Paulo',
+                year: 'numeric', month: '2-digit', day: '2-digit',
+                hour: '2-digit', minute: '2-digit', second: '2-digit',
+                hour12: false
+            }).formatToParts(agora).reduce((acc, p) => { acc[p.type] = p.value; return acc; }, {});
+            return `${partes.year}-${partes.month}-${partes.day}T${partes.hour}:${partes.minute}:${partes.second}-03:00`;
+        }
+
+        // --- TRATAMENTO DE ERRO GLOBAL ---
+        // Garante que falhas não capturadas (Supabase fora do ar, erro de rede,
+        // promise rejeitada sem .catch, etc.) nunca travem a UI silenciosamente:
+        // sempre reseta o loader e avisa o usuário via toast.
+        window.addEventListener('error', function (event) {
+            console.error('Erro global capturado:', event.error || event.message);
+            esconderLoaderGlobalSeExistir();
+            mostrarToastErroGenerico();
+        });
+
+        window.addEventListener('unhandledrejection', function (event) {
+            console.error('Promise rejeitada sem tratamento:', event.reason);
+            esconderLoaderGlobalSeExistir();
+            mostrarToastErroGenerico();
+        });
+
+        function esconderLoaderGlobalSeExistir() {
+            const loader = document.getElementById('globalLoader');
+            if (loader) loader.style.display = 'none';
+        }
+
+        function mostrarToastErroGenerico() {
+            if (typeof showToast === 'function') {
+                showToast('Ocorreu um erro inesperado. Tente novamente.', 'error');
+            }
+        }
         // Soma/subtrai dias a partir do "hoje" de Brasília, retornando YYYY-MM-DD.
         // Usa horário fixo em UTC (T00:00:00Z) apenas como âncora de cálculo de calendário,
         // então a aritmética de dias não sofre interferência de fuso horário.
@@ -983,7 +1025,6 @@ const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
                 } else {
                     // CRIACAO: chama Edge Function que cria no Auth + insere em usuarios
                     const payload = { nome, email, loja, perfil, status, senha };
-                    console.log("Payload sendo enviado para a Edge Function:", JSON.stringify(payload));
                     const { error } = await db.functions.invoke('criar-usuario', {
                         body: payload
                     });
@@ -1117,7 +1158,6 @@ const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
                 codigo: p.codigo || '',
                 nome: p.nome_produto || ''
             })).filter(p => p.nome.trim() !== '');
-            console.log('Produtos carregados:', todosProdutos.length);
         }
     } catch (e) {
         console.error('Erro ao carregar tabela de produtos:', e);
@@ -1597,6 +1637,28 @@ const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
             return total;
         }
 
+        /** Garante que o % de desconto fique sempre entre 0 e 100 */
+        function ajusteValidarDesconto(input) {
+            let v = parseFloat((input.value || '0').replace(',', '.'));
+            if (isNaN(v) || v < 0) v = 0;
+            if (v > 100) v = 100;
+            input.value = v === 0 ? '' : v;
+        }
+
+        /** Recalcula o "Por" (valor com desconto) de uma linha a partir do "De" e do "% Desc." */
+        function ajusteRecalcularLinha(el) {
+            const row = el.closest('.produto-row');
+            if (!row) return;
+            const deInput = row.querySelector('.ajuste-input-de');
+            const descInput = row.querySelector('.ajuste-input-desc');
+            const porInput = row.querySelector('.ajuste-input-por');
+            const de = parseCurrency(deInput?.value || '0');
+            const desc = Math.min(100, Math.max(0, parseFloat((descInput?.value || '0').replace(',', '.')) || 0));
+            const por = de * (1 - desc / 100);
+            if (porInput) porInput.value = 'R$ ' + por.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+            ajusteRecalcularTotal();
+        }
+
         /** Atualiza visibilidade dos botões de lixeira no modal de ajuste */
         function _ajusteAtualizarLixeiras() {
             const btns = document.querySelectorAll('#ajusteProdutosContainer .btn-remove-item');
@@ -1605,7 +1667,7 @@ const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
         }
 
         /** Cria e appenda uma linha de produto ao container do modal de ajuste */
-        function ajusteAdicionarLinha(nomePre = '', valorDePre = '', valorPorPre = '') {
+        function ajusteAdicionarLinha(nomePre = '', valorDePre = '', valorDescPre = '') {
             const container = document.getElementById('ajusteProdutosContainer');
             const row = document.createElement('div');
             row.className = 'produto-row';
@@ -1618,23 +1680,31 @@ const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
                     </button>
                 </div>
-                <div class="produto-row-bottom">
+                <div class="produto-row-bottom ajuste-row-bottom">
                     <div>
                         <div class="produto-row-label">De</div>
                         <input type="text" class="form-input input-de font-data ajuste-input-de" placeholder="R$ 0,00" inputmode="decimal"
                             value="${escapeHtml(valorDePre)}"
-                            oninput="this.value = formatCurrency(this.value);">
+                            oninput="this.value = formatCurrency(this.value); ajusteRecalcularLinha(this);">
+                    </div>
+                    <div class="ajuste-desc-wrapper">
+                        <div class="produto-row-label">% Desc.</div>
+                        <div class="ajuste-desc-input-group">
+                            <input type="number" class="form-input ajuste-input-desc" placeholder="0" min="0" max="100" step="0.1"
+                                value="${escapeHtml(valorDescPre)}"
+                                oninput="ajusteValidarDesconto(this); ajusteRecalcularLinha(this);">
+                            <span class="ajuste-desc-sign">%</span>
+                        </div>
                     </div>
                     <div>
                         <div class="produto-row-label">Por</div>
-                        <input type="text" class="form-input input-por font-data ajuste-input-por" placeholder="R$ 0,00" inputmode="decimal"
-                            value="${escapeHtml(valorPorPre)}"
-                            oninput="this.value = formatCurrency(this.value); ajusteRecalcularTotal();">
+                        <input type="text" class="form-input input-por font-data ajuste-input-por" placeholder="R$ 0,00" inputmode="decimal" readonly tabindex="-1"
+                            title="Calculado automaticamente a partir de 'De' e '% Desc.'">
                     </div>
                 </div>`;
             container.appendChild(row);
+            ajusteRecalcularLinha(row.querySelector('.ajuste-input-de'));
             _ajusteAtualizarLixeiras();
-            ajusteRecalcularTotal();
         }
 
         /** Abre o modal populando as linhas com base nos dados atuais do orçamento */
@@ -1674,11 +1744,11 @@ const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
                 ajusteAdicionarLinha();
             } else {
                 produtos.forEach((nome, i) => {
-                    // Se só há 1 produto, pré-popula o "POR" com o total
-                    const valorPor = (umSoProduto && i === 0)
+                    // Se só há 1 produto, pré-popula o "DE" com o total (sem desconto aplicado ainda)
+                    const valorDe = (umSoProduto && i === 0)
                         ? 'R$ ' + valorTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })
                         : '';
-                    ajusteAdicionarLinha(nome, '', valorPor);
+                    ajusteAdicionarLinha(nome, valorDe, '');
                 });
             }
 
@@ -3504,8 +3574,11 @@ function selectFilter(filter) {
                     </button>
                     <div style="flex:1; min-width:0; display:flex; align-items:center; gap:12px; overflow:hidden;">
                         <div style="font-size:1.25rem; font-weight:800; color:var(--text-primary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex:1; min-width:0;">${escapeHtml(orc.clientes?.nome_cliente || 'Cliente')}</div>
-                        ${orc.protocolo ? `<span style="font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; color:var(--brand-blue-dark); background:#eff6ff; border:1px solid #bfdbfe; padding:2px 9px; border-radius:5px; white-space:nowrap; flex-shrink:0;">${escapeHtml(orc.protocolo)}</span>` : ''}
+                        ${orc.protocolo ? `<span style="font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; color:var(--brand-blue-dark); background:var(--brand-blue-subtle); border:1px solid rgba(15, 118, 110, 0.25); padding:2px 9px; border-radius:5px; white-space:nowrap; flex-shrink:0;">${escapeHtml(orc.protocolo)}</span>` : ''}
                     </div>
+                    <button type="button" class="btn-agendar-icon" data-tooltip="Agendar contato" onclick="abrirModalAgendamento()">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                    </button>
                 </header>
 
                 <div class="detalhes-page-wrapper">
@@ -3593,28 +3666,20 @@ function selectFilter(filter) {
                             
                             ${orc.modelo_colchao ? (() => {
                                 const prods = orc.modelo_colchao.split(',').map(p => p.trim()).filter(Boolean);
-                                const primeiro = escapeHtml(prods[0] || '-');
-                                const extra = prods.length - 1;
-                                const accId = `acc-det-${orc.id_orcamento}`;
-                                const listaHtml = prods.map(p => `<li><span style="color:var(--brand-blue);font-weight:bold;">•</span> ${escapeHtml(p)}</li>`).join('');
+                                if (prods.length === 0) return '';
+                                // Sem valores individuais persistidos no banco: quando há mais de 1 item,
+                                // referenciamos o valor total orçado apenas na linha do primeiro item.
+                                const listaHtml = prods.map((p, i) => `
+                                    <li>
+                                        <span class="produto-bullet">•</span>
+                                        <span class="produto-nome">${escapeHtml(p)}</span>
+                                        ${(i === 0 && prods.length === 1) ? `<span class="produto-valor">${valorFormatado}</span>` : ''}
+                                    </li>`).join('');
                                 return `
                                 <div class="det-pill-row" style="grid-template-columns:1fr;">
                                     <div class="det-pill">
                                         <span class="det-pill-label">Produto(s)</span>
-                                        <div style="display:flex; flex-direction:column; gap:6px;">
-                                            <span class="det-pill-value">${primeiro}</span>
-                                            ${extra > 0 ? `
-                                            <button class="btn-expand-produtos" onclick="
-                                                const acc=document.getElementById('${accId}');
-                                                const open=acc.style.display==='block';
-                                                acc.style.display=open?'none':'block';
-                                                this.classList.toggle('open',!open);
-                                            ">+ ${extra} item${extra > 1 ? 'ns' : ''} <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="6 9 12 15 18 9"/></svg></button>
-                                            <div id="${accId}" style="display:none; padding:10px 12px; background:var(--surface-2); border-left:3px solid var(--brand-blue); border-radius:0 var(--radius-sm) var(--radius-sm) 0; font-size:var(--font-xs); color:var(--text-secondary);">
-                                                <strong style="display:block; margin-bottom:6px;">Todos os itens:</strong>
-                                                <ul style="list-style:none; padding:0; display:flex; flex-direction:column; gap:5px;">${listaHtml}</ul>
-                                            </div>` : ''}
-                                        </div>
+                                        <ul class="det-produtos-lista">${listaHtml}</ul>
                                     </div>
                                 </div>`;
                             })() : ''}
@@ -3695,74 +3760,9 @@ function selectFilter(filter) {
                         </section>
                     </div>
 
-                    <div class="det-col-wide">
-                        <section class="det-section">
-                            <div class="det-section-header">
-                                <svg class="det-section-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                                <h2 class="det-section-title">Agendar Próximo Contato</h2>
-                            </div>
-
-                            <div style="margin-bottom:16px;">
-                                <div style="font-size:10px; font-weight:600; color:#94a3b8; text-transform:uppercase; letter-spacing:.05em; margin-bottom:8px;">Acesso rápido</div>
-                                <div class="det-quick-dates">
-                                    <button class="btn-quick-date" onclick="setQuickDate(1)">Amanhã</button>
-                                    <button class="btn-quick-date" onclick="setQuickDate(3)">Em 3 dias</button>
-                                    <button class="btn-quick-date" onclick="setQuickDate(7)">Semana que vem</button>
-                                    <button class="btn-quick-date" onclick="setQuickDate(15)">Em 15 dias</button>
-                                </div>
-                            </div>
-
-                            <div class="schedule-form-grid" style="margin-bottom:16px;">
-                                <div class="form-group">
-                                    <label>Data *</label>
-                                    <input type="date" id="agendarData" value="${escapeHtml(orc.data_contato || '')}" class="form-input" style="height:40px; padding:0 12px; font-family:'JetBrains Mono',monospace; font-size:13px;">
-                                </div>
-                                <div class="form-group">
-                                    <label>Horário</label>
-                                    <input type="time" id="agendarHora" value="${escapeHtml(orc.hora_contato || '')}" class="form-input" style="height:40px; padding:0 12px; font-family:'JetBrains Mono',monospace; font-size:13px;">
-                                </div>
-                            </div>
-
-                            <div class="form-group" style="margin-bottom:16px;">
-                                <label>Tipo de Contato *</label>
-                                <select id="agendarTipo" class="form-input" style="height:40px; padding:0 12px; font-size:13px;">
-                                    <option value="">Selecionar...</option>
-                                    <optgroup label="Vendas">
-                                        <option value="Apresentação de Campanha/Promoção">Apresentação de Campanha/Promoção</option>
-                                        <option value="Reativação de Contato Antigo">Reativação de Contato Antigo</option>
-                                        <option value="Acompanhamento de Orçamento">Acompanhamento de Orçamento</option>
-                                        <option value="Virada de Tabela">Virada de Tabela</option>
-                                        <option value="Quebra de Objeção">Quebra de Objeção</option>
-                                        <option value="Cross-sell (Venda Cruzada)">Cross-sell (Venda Cruzada)</option>
-                                    </optgroup>
-                                    <optgroup label="Pós-Venda">
-                                        <option value="Alinhamento Logístico">Alinhamento Logístico</option>
-                                        <option value="Acompanhamento de Adaptação (Pós-Entrega)">Acompanhamento de Adaptação (Pós-Entrega)</option>
-                                        <option value="Assistência Técnica">Assistência Técnica</option>
-                                    </optgroup>
-                                </select>
-                                <div class="field-error" id="agendarTipoErro"></div>
-                            </div>
-
-                            <div class="form-group" style="flex:1; display:flex; flex-direction:column; margin-bottom:16px;">
-                                <label>Observações / Lembrete</label>
-                                <textarea id="agendarObservacao" class="form-input" style="flex:1; resize:none; font-size:13px; min-height:120px;" placeholder="Detalhes contextuais para o próximo contato..."></textarea>
-                            </div>
-
-                            <button class="btn-agendar-full" id="btnConfirmarAgendamento" onclick="agendarContato()" style="margin-top:0;">
-                                <span class="btn-spinner" style="display:none; width:16px; height:16px; border:2px solid rgba(255,255,255,0.3); border-top-color:#fff; border-radius:50%; animation:spin 1s linear infinite;"></span>
-                                <span class="btn-text" style="display:flex; align-items:center; gap:6px;">
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                                    Confirmar Agendamento
-                                </span>
-                            </button>
-                            <div class="field-error" id="agendarMsg" style="text-align:center; margin-top:8px;"></div>
-                        </section>
-                    </div>
-
                 </div>
 
-<button id="btnFabIA" onclick="analisarClienteComIA('${id}')" style="position: fixed; bottom: 32px; right: 32px; background: linear-gradient(135deg, #6366f1, #8b5cf6); color: #fff; border: none; padding: 14px 24px; border-radius: 30px; font-weight: 700; font-size: 14px; cursor: pointer; box-shadow: 0 10px 15px -3px rgba(99, 102, 241, 0.4); display: flex; align-items: center; gap: 8px; z-index: 1000; transition: transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 15px 20px -3px rgba(99, 102, 241, 0.5)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 10px 15px -3px rgba(99, 102, 241, 0.4)'">
+<button id="btnFabIA" onclick="analisarClienteComIA('${id}')" style="position: fixed; bottom: 32px; right: 32px; background: linear-gradient(135deg, var(--gold), var(--gold-dark)); color: #fff; border: none; padding: 14px 24px; border-radius: 30px; font-weight: 700; font-size: 14px; cursor: pointer; box-shadow: 0 10px 20px -3px var(--gold-glow), var(--shadow-md); display: flex; align-items: center; gap: 8px; z-index: 1000; transition: transform 0.2s, box-shadow 0.2s; font-family: 'Inter', sans-serif;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 14px 26px -3px var(--gold-glow), var(--shadow-lg)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 10px 20px -3px var(--gold-glow), var(--shadow-md)'">
                     <span class="btn-text">✨ Destravar Venda</span>
                     <span class="btn-spinner" style="display:none; width:16px; height:16px; border:2px solid rgba(255,255,255,0.3); border-top-color:#fff; border-radius:50%; animation:spin 1s linear infinite;"></span>
                 </button>
@@ -3838,7 +3838,7 @@ function selectFilter(filter) {
             const qtdExtra = produtos.length - 1;
             const tagPlural = qtdExtra > 1 ? 'itens' : 'item';
             
-            return `${primeiroProduto} <br><span style="display:inline-block; margin-top:4px; font-size:10px; font-weight:700; color:var(--brand-blue-dark); background:#eff6ff; border: 1px solid #bfdbfe; padding:2px 8px; border-radius:12px;">+ ${qtdExtra} ${tagPlural}</span>`;
+            return `${primeiroProduto} <br><span style="display:inline-block; margin-top:4px; font-size:10px; font-weight:700; color:var(--brand-blue-dark); background:var(--brand-blue-subtle); border: 1px solid rgba(15, 118, 110, 0.25); padding:2px 8px; border-radius:12px;">+ ${qtdExtra} ${tagPlural}</span>`;
         }
 
 
@@ -3873,19 +3873,43 @@ function selectFilter(filter) {
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
                     </button>
                 </div>
-                <div class="produto-row-bottom">
+                <div class="produto-row-bottom ajuste-row-bottom">
                     <div>
                         <div class="produto-row-label">De</div>
-                        <input type="text" class="form-input input-de font-data" placeholder="R$ 0,00" inputmode="decimal" oninput="this.value = formatCurrency(this.value);">
+                        <input type="text" class="form-input input-de font-data" placeholder="R$ 0,00" inputmode="decimal"
+                            oninput="this.value = formatCurrency(this.value); recalcularLinhaNovoOrcamento(this);">
+                    </div>
+                    <div class="ajuste-desc-wrapper">
+                        <div class="produto-row-label">% Desc.</div>
+                        <div class="ajuste-desc-input-group">
+                            <input type="number" class="form-input ajuste-input-desc" placeholder="0" min="0" max="100" step="0.1"
+                                oninput="ajusteValidarDesconto(this); recalcularLinhaNovoOrcamento(this);">
+                            <span class="ajuste-desc-sign">%</span>
+                        </div>
                     </div>
                     <div>
                         <div class="produto-row-label">Por</div>
-                        <input type="text" class="form-input input-por font-data" placeholder="R$ 0,00" inputmode="decimal" oninput="this.value = formatCurrency(this.value); calcTotalModal();">
+                        <input type="text" class="form-input input-por font-data" placeholder="R$ 0,00" inputmode="decimal" readonly tabindex="-1"
+                            title="Calculado automaticamente a partir de 'De' e '% Desc.'">
                     </div>
                 </div>
             `;
             container.appendChild(row); 
             atualizarBotoesLixeira();
+        }
+
+        /** Recalcula o "Por" (valor com desconto) de uma linha do Novo Orçamento a partir do "De" e do "% Desc." */
+        function recalcularLinhaNovoOrcamento(el) {
+            const row = el.closest('.produto-row');
+            if (!row) return;
+            const deInput = row.querySelector('.input-de');
+            const descInput = row.querySelector('.ajuste-input-desc');
+            const porInput = row.querySelector('.input-por');
+            const de = parseCurrency(deInput?.value || '0');
+            const desc = Math.min(100, Math.max(0, parseFloat((descInput?.value || '0').replace(',', '.')) || 0));
+            const por = de * (1 - desc / 100);
+            if (porInput) porInput.value = 'R$ ' + por.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+            calcTotalModal();
         }
 
         // Monta e exibe a lista de sugestões de produto conforme o usuário digita.
@@ -4044,10 +4068,10 @@ function selectFilter(filter) {
         
             main.innerHTML = `
                 <header class="dashboard-header" style="display:flex; align-items:center; gap:16px; margin-bottom:24px;">
-                    <button class="btn-voltar" onclick="navigateTo(previousView)" style="background:#fff; border:1px solid #e2e8f0; padding:8px 16px; border-radius:8px; cursor:pointer; font-weight:600; color:#475569; display:flex; align-items:center; gap:6px;">
+                    <button class="btn-voltar" onclick="navigateTo(previousView)">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg> Voltar
                     </button>
-                    <h1 style="font-size: 20px; font-weight: 800; color:#0f172a;">Novo Orçamento</h1>
+                    <h1 style="font-size: 20px; font-weight: 800; color:var(--text-primary);">Novo Orçamento</h1>
                 </header>
 
                 <div class="novo-orcamento-wrapper">
@@ -4118,7 +4142,7 @@ function selectFilter(filter) {
                                     Confirmar e Salvar
                                 </span>
                             </button>
-                            <button style="background:#fff; color:#475569; border:1px solid #e2e8f0; padding:14px; border-radius:8px; font-weight:600; cursor:pointer; transition:0.2s;" onclick="navigateTo(previousView)">Cancelar Alterações</button>
+                            <button style="background:var(--card-bg); color:var(--text-secondary); border:1.5px solid var(--border-light); padding:14px; border-radius:8px; font-weight:600; cursor:pointer; transition:0.2s;" onmouseover="this.style.background='var(--surface-2)'" onmouseout="this.style.background='var(--card-bg)'" onclick="navigateTo(previousView)">Cancelar Alterações</button>
                             <p class="msg" id="modalMsg" style="text-align: center; font-size: 12px;"></p>
                         </div>
                     </section>
@@ -4239,7 +4263,7 @@ function selectFilter(filter) {
                 let dataCriacaoFinal = dataOrcamento;
                 const hojeData = getHojeBrasilia();
                 if (dataOrcamento === hojeData) {
-                    dataCriacaoFinal = new Date().toISOString();
+                    dataCriacaoFinal = getAgoraBrasiliaISO();
                 } else {
                     dataCriacaoFinal = `${dataOrcamento}T12:00:00.000Z`;
                 }
@@ -4291,14 +4315,13 @@ function selectFilter(filter) {
             const btn = event.currentTarget;
             btn.classList.add('saving'); btn.disabled = true; isConfirmingPerda = true;
             try {
-                console.log("mapStatusUUID ao perder:", JSON.stringify(mapStatusUUID));
                 if (!mapStatusUUID.length) {
                     const { data } = await db.from('status_orcamento').select('*');
                     mapStatusUUID = data || [];
                 }
                 const statusPerdido = mapStatusUUID.find(s => s.nome === STATUS.PERDIDO);
                 if (!statusPerdido) throw new Error('Status "Perdido" não encontrado');
-                const { error } = await db.from('orcamentos').update({ id_status: statusPerdido.id_status, data_fechamento: new Date().toISOString() }).eq('id_orcamento', idOrcamentoParaPerder);
+                const { error } = await db.from('orcamentos').update({ id_status: statusPerdido.id_status, data_fechamento: getAgoraBrasiliaISO() }).eq('id_orcamento', idOrcamentoParaPerder);
                 if (error) throw error;
                 const comentario = `Venda perdida. Motivo: ${motivo}${motivoDetalhes ? ' - Detalhes: ' + motivoDetalhes : ''}`;
                 await db.from('comentarios').insert([{ id_orcamento: idOrcamentoParaPerder, texto: comentario, tipo: 'Perda', autor: currentUser.nome }]);
@@ -4322,10 +4345,10 @@ function selectFilter(filter) {
 
             // Highlight selecionado
             btnEntrega.style.borderColor = modo === 'entrega' ? 'var(--brand-blue)' : 'var(--border-light)';
-            btnEntrega.style.background = modo === 'entrega' ? '#eff6ff' : 'var(--card-bg)';
+            btnEntrega.style.background = modo === 'entrega' ? 'var(--brand-blue-subtle)' : 'var(--card-bg)';
             btnEntrega.style.color = modo === 'entrega' ? 'var(--brand-blue-dark)' : 'var(--text-primary)';
             btnRetirada.style.borderColor = modo === 'retirada' ? 'var(--accent-green)' : 'var(--border-light)';
-            btnRetirada.style.background = modo === 'retirada' ? '#f0fdf4' : 'var(--card-bg)';
+            btnRetirada.style.background = modo === 'retirada' ? 'var(--accent-green-subtle)' : 'var(--card-bg)';
             btnRetirada.style.color = modo === 'retirada' ? 'var(--accent-green-dark)' : 'var(--text-primary)';
 
             if (modo === 'entrega') {
@@ -4394,7 +4417,7 @@ function selectFilter(filter) {
                 const statusFechado = mapStatusUUID.find(s => s.nome === STATUS.FECHADO);
                 if (!statusFechado) throw new Error('Status "Fechado" não encontrado');
 
-                const updatePayload = { id_status: statusFechado.id_status, data_fechamento: new Date().toISOString() };
+                const updatePayload = { id_status: statusFechado.id_status, data_fechamento: getAgoraBrasiliaISO() };
                 if (dataEntrega) updatePayload.data_entrega = dataEntrega;
 
                 const { error } = await db.from('orcamentos').update(updatePayload).eq('id_orcamento', id);
@@ -4441,6 +4464,18 @@ function selectFilter(filter) {
             }
         }
 
+        function abrirModalAgendamento() {
+            const orc = AppState.contextoVenda.clienteAtual;
+            if (!orc) return;
+            document.getElementById('agendarData').value = orc.data_contato || '';
+            document.getElementById('agendarHora').value = orc.hora_contato || '';
+            document.getElementById('agendarTipo').value = '';
+            document.getElementById('agendarObservacao').value = '';
+            document.getElementById('agendarTipoErro').textContent = '';
+            document.getElementById('agendarMsg').textContent = '';
+            openModal('modalAgendarContato');
+        }
+
         async function agendarContato() {
             const data = document.getElementById('agendarData').value;
             const hora = document.getElementById('agendarHora').value;
@@ -4459,6 +4494,7 @@ function selectFilter(filter) {
                 const { error: err1 } = await db.from('orcamentos').update({ data_contato: data, hora_contato: hora, observacao_agendamento: obsAgendamento }).eq('id_orcamento', AppState.contextoVenda.clienteAtual.id_orcamento);
                 if (err1) throw new Error(err1.message);
                 
+                closeModal('modalAgendarContato');
                 showToast('Agendamento confirmado!', 'success'); await abrirDetalhesCliente(AppState.contextoVenda.clienteAtual.id_orcamento);
             } catch (e) { showToast('Erro ao agendar: ' + e.message, 'error'); } 
             finally { btn.querySelector('.btn-spinner').style.display = 'none'; btn.querySelector('.btn-text').textContent = 'Confirmar Agendamento'; btn.disabled = false; }
@@ -4969,7 +5005,7 @@ function selectFilter(filter) {
 
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape') {
-                const modais = ['modalMotivoPerda', 'modalConfirmaFechamento', 'modalEditarMeta', 'modalExcluirComentario', 'modalUsuarioAdmin', 'modalExcluirUsuarioAdmin', 'modalEditarCliente', 'modalExcluirCliente', 'modalCriarNegocio', 'modalAjusteProposta'];
+                const modais = ['modalMotivoPerda', 'modalConfirmaFechamento', 'modalEditarMeta', 'modalExcluirComentario', 'modalUsuarioAdmin', 'modalExcluirUsuarioAdmin', 'modalEditarCliente', 'modalExcluirCliente', 'modalCriarNegocio', 'modalAjusteProposta', 'modalAgendarContato'];
                 for (const id of modais) {
                     if (document.getElementById(id) && document.getElementById(id).classList.contains('open')) {
                         closeModal(id);
@@ -5108,7 +5144,7 @@ async function dropCardFechado(event) {
     showToast('Fechando negócio...', 'info');
     try {
         const { error } = await db.from('orcamentos')
-            .update({ id_status: statusObj.id_status, data_fechamento: new Date().toISOString() })
+            .update({ id_status: statusObj.id_status, data_fechamento: getAgoraBrasiliaISO() })
             .eq('id_orcamento', idOrcamento);
         if (error) throw error;
 
@@ -5333,11 +5369,11 @@ async function renderEstoque() {
             </div>
             <div class="kpi-card">
                 <div class="kpi-label-row"><span class="kpi-dot green"></span><span class="kpi-label">Disponível</span></div>
-                <div class="kpi-value" style="color: var(--success-text);" id="estoqueKpiDisponivel">-</div>
+                <div class="kpi-value" style="color: var(--status-success-text);" id="estoqueKpiDisponivel">-</div>
             </div>
             <div class="kpi-card">
                 <div class="kpi-label-row"><span class="kpi-dot orange"></span><span class="kpi-label">Reservado</span></div>
-                <div class="kpi-value" style="color: var(--warning-text);" id="estoqueKpiReservado">-</div>
+                <div class="kpi-value" style="color: var(--status-warning-text);" id="estoqueKpiReservado">-</div>
             </div>
             <div class="kpi-card">
                 <div class="kpi-label-row"><span class="kpi-dot red"></span><span class="kpi-label">Baixo Estoque</span></div>
@@ -6004,8 +6040,6 @@ async function analisarClienteComIA(idOrcamentoAtual) {
         });
 
         // Validação no Console para Engenharia de Prompt
-        console.log("=== DOSSIÊ ENVIADO PARA IA ===");
-        console.log(dossie);
 
         // 5. Chamada real ao Groq via Edge Function
         const promptFinal = isFechado
@@ -6032,231 +6066,6 @@ async function analisarClienteComIA(idOrcamentoAtual) {
     }
 }
 
-function abrirModalChatIA(resposta, nomeCliente) {
-    const anterior = document.getElementById('modalChatIA');
-    if (anterior) anterior.remove();
-
-	// 1. Remove negrito
-// 0. Remove raciocínio interno do modelo (tudo antes de "1. Estratégia" ou "1. Situação")
-let textoLimpo = resposta;
-const marcadorInicio = /1\.\s*(Estratégia|Situação Pós-Venda)/i;
-const matchInicio = textoLimpo.match(marcadorInicio);
-if (matchInicio) {
-    textoLimpo = textoLimpo.slice(textoLimpo.indexOf(matchInicio[0]));
-}
-
-// 1. Remove negrito
-let textoTemp = textoLimpo.replace(/\*\*(.*?)\*\*/g, '$1');
-
-// 2. REMOVE totalmente o asterisco ou hífen no início da linha
-textoTemp = textoTemp.replace(/^[\*\-]\s*/gm, ''); 
-
-// 3. Garante espaço entre linhas principais
-textoTemp = textoTemp.replace(/\n\n/g, '<br><br>');
-
-// 4. Converte quebras restantes
-const formatado = textoTemp.replace(/\n/g, '<br>');
-	
-    const modal = document.createElement('div');
-    modal.id = 'modalChatIA';
-    modal.style.cssText = `
-        position: fixed; inset: 0; z-index: 9999;
-        display: flex; align-items: flex-end; justify-content: flex-end;
-asasdasd        padding: 100px 24px 100px 0; pointer-events: none;
-    `;
-
-    modal.innerHTML = `
-        <div class="chat-modal-container" style="background: white; border-radius: 16px 16px 0 0; width: 100%; max-width: 400px; 
-                    box-shadow: 0 -4px 24px rgba(0,0,0,0.2); pointer-events: auto; display: flex; flex-direction: column; 
-                    max-height: 80vh; color: #1f2937;">
-            <div class="chat-header" style="background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%); padding: 16px 20px; 
-                        border-radius: 16px 16px 0 0; display: flex; align-items: center; justify-content: space-between;">
-                <div style="display: flex; align-items: center; gap: 12px;">
-                    <div style="background: rgba(255,255,255,0.2); padding: 8px; border-radius: 8px;">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
-                            <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
-                            <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
-                            <line x1="12" x2="12" y1="19" y2="22"/>
-                        </svg>
-                    </div>
-                    <div>
-                        <h3 style="color: white; font-weight: 600; font-size: 16px; margin: 0;">Assistente de Vendas</h3>
-                        <p style="color: rgba(255,255,255,0.8); font-size: 12px; margin: 0;">Análise de ${escapeHtml(nomeCliente)}</p>
-                    </div>
-                </div>
-                <button onclick="fecharModalChatIA()" style="background: rgba(255,255,255,0.2); border: none; 
-                           color: white; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; 
-                           display: flex; align-items: center; justify-content: center; font-size: 18px;">×</button>
-            </div>
-            
-            <div id="chatIAPanel" class="chat-messages-area" style="flex: 1; overflow-y: auto; padding: 16px; background: #f3f4f6; color: #1f2937;">
-                <div class="message-assistant" style="display: flex; gap: 12px; margin-bottom: 16px;">
-                    <div style="background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%); 
-                                width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0; 
-                                display: flex; align-items: center; justify-content: center;">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
-                            <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
-                            <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
-                            <line x1="12" x2="12" y1="19" y2="22"/>
-                        </svg>
-                    </div>
-                    <div class="message-bubble" style="background: white; padding: 12px 16px; border-radius: 12px; 
-                                box-shadow: 0 1px 3px rgba(0,0,0,0.1); flex: 1; max-width: calc(100% - 44px);">
-                        <p style="margin: 0; line-height: 1.5; color: #000000; font-weight: 400;">${formatado}</p>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="chat-input-area" style="padding: 16px; border-top: 1px solid #e5e7eb; background: white;">
-                <div style="display: flex; gap: 8px; align-items: flex-end;">
-                    <textarea id="chatIAInput" class="chat-input" placeholder="Pergunte algo sobre este cliente..." 
-                              style="flex: 1; padding: 12px; border: 1px solid #d1d5db; border-radius: 12px; 
-                                     resize: none; font-family: inherit; font-size: 14px; outline: none; 
-                                     max-height: 100px; min-height: 44px;" rows="1"></textarea>
-                    <button id="chatIASendBtn" onclick="enviarMensagemChatIA()" class="chat-send-btn" style="background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%); 
-                               border: none; color: white; width: 44px; height: 44px; border-radius: 12px; 
-                               cursor: pointer; display: flex; align-items: center; justify-content: center;">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <line x1="22" x2="11" y1="2" y2="13"/>
-                            <polygon points="22 2 15 22 11 13 2 9 22 2"/>
-                        </svg>
-                    </button>
-                </div>
-            </div>
-        </div>
-    `;
-
-    document.body.appendChild(modal);
-    setTimeout(() => document.getElementById('chatIAInput')?.focus(), 100);
-
-    window._chatIAHistorico = [
-        { role: 'user', content: 'Analise este cliente e sugira estratégias de venda.' },
-        { role: 'assistant', content: resposta }
-    ];
-}
-
-async function enviarMensagemChatIA() {
-    const input = document.getElementById('chatIAInput');
-    const texto = input?.value?.trim();
-    if (!texto) return;
-
-    const chatBody = document.querySelector('#chatIAPanel > div[style*="overflow-y"]');
-    if (!chatBody) return;
-
-    input.value = '';
-    input.disabled = true;
-
-    chatBody.insertAdjacentHTML('beforeend', `
-        <div class="message-user" style="display: flex; gap: 12px; margin-bottom: 16px; justify-content: flex-end;">
-            <div class="message-bubble" style="background: #7c3aed; padding: 12px 16px; border-radius: 12px; 
-                        box-shadow: 0 1px 3px rgba(0,0,0,0.1); flex: 1; max-width: calc(100% - 44px);">
-                <p style="margin: 0; line-height: 1.5; color: white;">${escapeHtml(texto)}</p>
-            </div>
-            <div style="width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0; 
-                        background: #e5e7eb; display: flex; align-items: center; justify-content: center;">
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="2">
-                    <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/>
-                    <circle cx="12" cy="7" r="4"/>
-                </svg>
-            </div>
-        </div>
-    `);
-
-    const typingId = 'typing_' + Date.now();
-    chatBody.insertAdjacentHTML('beforeend', `
-        <div class="message-assistant typing-bubble" style="display: flex; gap: 12px; margin-bottom: 16px;" id="${typingId}">
-            <div style="background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%); 
-                        width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0; 
-                        display: flex; align-items: center; justify-content: center;">
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
-                    <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
-                    <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
-                    <line x1="12" x2="12" y1="19" y2="22"/>
-                </svg>
-            </div>
-            <div class="message-bubble" style="background: white; padding: 12px 16px; border-radius: 12px; 
-                        box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-                <div class="typing-dots" style="display: flex; gap: 4px;">
-                    <div class="typing-dot" style="width: 8px; height: 8px; background: #7c3aed; border-radius: 50%; 
-                                animation: bounce 1.4s infinite ease-in-out both;"></div>
-                    <div class="typing-dot" style="width: 8px; height: 8px; background: #7c3aed; border-radius: 50%; 
-                                animation: bounce 1.4s infinite ease-in-out both; animation-delay: 0.16s;"></div>
-                    <div class="typing-dot" style="width: 8px; height: 8px; background: #7c3aed; border-radius: 50%; 
-                                animation: bounce 1.4s infinite ease-in-out both; animation-delay: 0.32s;"></div>
-                </div>
-            </div>
-        </div>
-    `);
-    chatBody.scrollTop = chatBody.scrollHeight;
-
-    try {
-        window._chatIAHistorico = window._chatIAHistorico || [];
-        window._chatIAHistorico.push({ role: 'user', content: texto });
-
-        const { data: { session } } = await db.auth.getSession();
-        const res = await fetch(
-            'https://blumqkxwasdbyozdvrsp.supabase.co/functions/v1/gemini-proxy ',
-            {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
-                body: JSON.stringify({
-                    prompt: `${texto}\n\nContexto da conversa anterior: ${JSON.stringify(window._chatIAHistorico.slice(0,-1))}`
-                }),
-            }
-        );
-        const data = await res.json();
-        if (data.error) throw new Error(data.error);
-
-        const respostaFormatada = (data.text || '')
-            .replace(/\*\*(.*?)\*\*/g, '$1')
-            .replace(/^\* /gm, '• ')
-            .replace(/\n/g, '<br>');
-
-        window._chatIAHistorico.push({ role: 'assistant', content: data.text });
-
-        document.getElementById(typingId)?.remove();
-        chatBody.insertAdjacentHTML('beforeend', `
-            <div class="message-assistant" style="display: flex; gap: 12px; margin-bottom: 16px;">
-                <div style="background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%); 
-                            width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0; 
-                            display: flex; align-items: center; justify-content: center;">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
-                        <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
-                        <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
-                        <line x1="12" x2="12" y1="19" y2="22"/>
-                    </svg>
-                </div>
-                <div class="message-bubble" style="background: white; padding: 12px 16px; border-radius: 12px; 
-                            box-shadow: 0 1px 3px rgba(0,0,0,0.1); flex: 1; max-width: calc(100% - 44px);">
-                    <p style="margin: 0; line-height: 1.5; color: #000000; font-weight: 400;">${respostaFormatada}</p>
-                </div>
-            </div>
-        `);
-    } catch(e) {
-        document.getElementById(typingId)?.remove();
-        chatBody.insertAdjacentHTML('beforeend', `
-            <div class="message-assistant" style="display: flex; gap: 12px; margin-bottom: 16px;">
-                <div style="background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%); 
-                            width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0; 
-                            display: flex; align-items: center; justify-content: center;">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
-                        <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
-                        <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
-                        <line x1="12" x2="12" y1="19" y2="22"/>
-                    </svg>
-                </div>
-                <div class="message-bubble" style="background: white; padding: 12px 16px; border-radius: 12px; 
-                            box-shadow: 0 1px 3px rgba(0,0,0,0.1); flex: 1; max-width: calc(100% - 44px);">
-                    <p style="margin: 0; line-height: 1.5; color: #ef4444; font-weight: 400;">Erro ao responder. Tente novamente.</p>
-                </div>
-            </div>
-        `);
-    } finally {
-        input.disabled = false;
-        input.focus();
-        chatBody.scrollTop = chatBody.scrollHeight;
-    }
-}
 
 async function chamarIA(prompt, contexto = '') {
     const { data: { session } } = await db.auth.getSession();
@@ -6331,13 +6140,13 @@ function renderizarMensagensChat() {
         const isUser = msg.role === 'user';
         return `
             <div style="display:flex; gap:12px; ${isUser ? 'flex-direction:row-reverse;' : ''}">
-                <div style="width:32px; height:32px; border-radius:50%; background:${isUser ? 'linear-gradient(135deg, #6366f1, #8b5cf6)' : 'linear-gradient(135deg, #10b981, #059669)'}; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                <div style="width:32px; height:32px; border-radius:50%; background:${isUser ? 'linear-gradient(135deg, var(--brand-blue), var(--brand-blue-dark))' : 'linear-gradient(135deg, var(--gold), var(--gold-dark))'}; display:flex; align-items:center; justify-content:center; flex-shrink:0; box-shadow:var(--shadow-xs);">
                     ${isUser 
                         ? '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>'
                         : '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>'
                     }
                 </div>
-                <div style="max-width:75%; padding:12px 16px; border-radius:16px; background:${isUser ? 'linear-gradient(135deg, #6366f1, #8b5cf6)' : 'white'}; color:${isUser ? 'white' : 'var(--text-primary)'}; box-shadow:0 1px 3px rgba(0,0,0,0.1);">
+                <div style="max-width:75%; padding:12px 16px; border-radius:16px; background:${isUser ? 'linear-gradient(135deg, var(--brand-blue), var(--brand-blue-dark))' : 'var(--card-bg)'}; color:${isUser ? '#fff' : 'var(--text-primary)'}; border:${isUser ? 'none' : '1px solid var(--border-light)'}; box-shadow:var(--shadow-xs);">
                     <div style="font-size:13.5px; line-height:1.6; white-space:pre-wrap;">${formatarMensagemIA(msg.content)}</div>
                 </div>
             </div>
